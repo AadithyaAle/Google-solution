@@ -9,6 +9,22 @@ class SupplyChainRouter:
         """Adds a bidirectional transit route between two nodes with a given risk/distance weight."""
         self.graph.add_edge(node_a, node_b, weight=weight)
 
+    def update_risk_penalty(self, node_a: str, node_b: str, risk_score: float):
+        """Dynamically increases the weight of a route based on AI risk assessment."""
+        if self.graph.has_edge(node_a, node_b):
+            # Grab the current distance/time weight of the road
+            current_weight = self.graph[node_a][node_b]['weight']
+            
+            # Multiply the penalty so the algorithm actively avoids it
+            # A risk score of 9.9 will massively increase the weight!
+            new_weight = current_weight + (risk_score * 10)
+            
+            # Apply the new weight to the map
+            self.graph[node_a][node_b]['weight'] = new_weight
+            print(f"Risk Alert: Route {node_a} -> {node_b} penalized. New weight: {new_weight}")
+        else:
+            print(f"Warning: Tried to penalize non-existent route {node_a} -> {node_b}")
+
     def compute_route(self, start_node: str, end_node: str):
         """Calculates the safest/shortest path, gracefully handling disconnected or missing nodes."""
         try:
@@ -17,16 +33,13 @@ class SupplyChainRouter:
             return path
             
         except nx.NodeNotFound as e:
-            # Safely catches: "networkx.exception.NodeNotFound: Target D is not in G"
             print(f"Routing Warning: A requested location is missing from the network map. ({e})")
             return None
             
         except nx.NetworkXNoPath:
-            # Safely catches scenarios where a bridge is out and no detour exists
             print(f"Routing Warning: No physical path exists between {start_node} and {end_node}.")
             return None
             
         except Exception as e:
-            # Catch-all for any other weird math or graph errors
             print(f"Unexpected Routing Error: {e}")
             return None
