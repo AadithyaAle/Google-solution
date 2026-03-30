@@ -70,5 +70,5 @@ git push origin feat/add-map-markers
 ---
 
 > **Note:** This is a living document. We will update the final project documentation once all features are integrated.
-```
+
 
