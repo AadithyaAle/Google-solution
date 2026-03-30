@@ -4,3 +4,7 @@ networkx
 google-genai
 pydantic
 python-dotenv
+pytest
+httpx
+
+#pip install -r requirements.txt
