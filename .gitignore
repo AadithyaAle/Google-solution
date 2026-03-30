@@ -11,4 +11,3 @@ frontend/dist/
 
 # Environment Variables (CRITICAL)
 .env
-EOF
