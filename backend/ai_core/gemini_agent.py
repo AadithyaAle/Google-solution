@@ -1,7 +1,18 @@
+import os
+from dotenv import load_dotenv
 from google import genai
 
-# Initialize the Gen AI client (ensure your API key is exported in your Ubuntu environment)
-client = genai.Client(api_key="YOUR_GEMINI_API_KEY")
+# Load environment variables from the .env file
+load_dotenv()
+
+# Securely fetch the API key
+api_key = os.getenv("GEMINI_API_KEY")
+
+if not api_key:
+    raise ValueError("CRITICAL: GEMINI_API_KEY is missing from the .env file.")
+
+# Initialize the Gen AI client securely
+client = genai.Client(api_key=api_key)
 
 def evaluate_transit_risk(telemetry_data: dict) -> float:
     """
