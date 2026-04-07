@@ -1,35 +1,54 @@
 import os
-from dotenv import load_dotenv
+import json
 from google import genai
+from google.genai import types
+from dotenv import load_dotenv
 
-# Load environment variables from the .env file
 load_dotenv()
 
-# Securely fetch the API key
-api_key = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise ValueError("CRITICAL: GEMINI_API_KEY is missing from .env file.")
 
-if not api_key:
-    raise ValueError("CRITICAL: GEMINI_API_KEY is missing from the .env file.")
+# THE NEW WAY: Initialize a secure client instance
+client = genai.Client(api_key=API_KEY)
 
-# Initialize the Gen AI client securely
-client = genai.Client(api_key=api_key)
-
-def evaluate_transit_risk(telemetry_data: dict) -> float:
+def evaluate_transit_risk(telemetry_data: dict) -> dict:
     """
-    Sends telemetry to Gemini 2.0 Flash to get a risk score from 0.0 to 10.0.
+    Feeds telemetry to Gemini using the modern Client SDK and 
+    forces a structured JSON response.
     """
     prompt = f"""
-    You are an autonomous supply chain risk agent. 
-    Analyze this telemetry: {telemetry_data}
-    Return ONLY a single float between 0.0 (perfectly safe) and 10.0 (critical delay predicted).
+    You are an expert Supply Chain AI. Analyze this live truck telemetry:
+    {json.dumps(telemetry_data, indent=2)}
+
+    Determine the risk of severe delay or cargo damage. 
+    You MUST respond with a valid JSON object using exactly this schema:
+    {{
+        "risk_score": float (0.0 to 10.0),
+        "status": string ("NOMINAL", "WARNING", or "CRITICAL"),
+        "mitigation_plan": [
+            "Action step 1",
+            "Action step 2"
+        ]
+    }}
+    Do not include markdown blocks or any other text. Return ONLY the JSON.
     """
-    
+
     try:
+        # Use the client to call Gemini 1.5 Flash
         response = client.models.generate_content(
-            model="gemini-2.0-flash", 
-            contents=prompt
+            model='gemini-1.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            )
         )
-        return float(response.text.strip())
+        # Parse the string response into a Python dictionary
+        return json.loads(response.text)
+    
     except Exception as e:
-        print(f"AI Agent Error: {e}")
-        return 0.0 # Default to safe if API fails
+        print(f"AI Evaluation Error: {e}")
+        # Failsafe default if the AI times out
+        return {"risk_score": 0.0, "status": "NOMINAL", "mitigation_plan": ["Monitor route"]}
+    

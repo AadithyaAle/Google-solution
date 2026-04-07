@@ -1,18 +1,44 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
-from ai_core.routing import SupplyChainRouter
+from fastapi.middleware.cors import CORSMiddleware
 from ai_core.gemini_agent import evaluate_transit_risk
+from ai_core.routing import SupplyChainRouter
+import asyncio
 
-# Initialize the API
-app = FastAPI(title="B2B Smart Supply Chain API")
+app = FastAPI(title="Supply Chain Control Tower")
+
+# Allow the React frontend to talk to the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize our Graph Router
 router = SupplyChainRouter()
+router.add_path("Supplier_Delhi", "Factory_Mumbai", weight=10.0)
 
-# Pre-populate our B2B Graph (You would normally load this from a database)
-router.add_path("Supplier_Delhi", "Factory_Mumbai", 14.0)
-router.add_path("Supplier_Delhi", "Hub_Jaipur", 5.0)
-router.add_path("Hub_Jaipur", "Factory_Mumbai", 8.0)
+# --- WEBSOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
 
-# Data Models for our API
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast_alert(self, message: dict):
+        for connection in self.active_connections:
+            await connection.send_json(message)
+
+manager = ConnectionManager()
+# -------------------------
+
 class TelemetryPayload(BaseModel):
     shipment_id: str
     current_location: str
@@ -20,28 +46,36 @@ class TelemetryPayload(BaseModel):
     weather_condition: str
     vibration_level: float
 
-class RouteRequest(BaseModel):
-    start_node: str
-    end_node: str
+@app.websocket("/ws/alerts")
+async def websocket_endpoint(websocket: WebSocket):
+    """The frontend will connect to this endpoint to listen for live AI alerts."""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep the connection open
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 @app.post("/api/telemetry")
 async def process_telemetry(data: TelemetryPayload):
     """Ingests mock data from the simulator and asks AI to evaluate risk."""
-    risk_score = evaluate_transit_risk(data.model_dump())
     
-    # If the AI predicts a major disruption, update the graph
-    if risk_score > 5.0:
-        router.update_risk_penalty(data.current_location, data.next_destination, risk_score)
-        return {"status": "Warning", "message": f"High risk ({risk_score}) detected. Graph updated."}
+    # 1. Ask Gemini for the structured JSON response
+    ai_analysis = evaluate_transit_risk(data.model_dump())
+    
+    # 2. If the AI predicts a major disruption, update the graph
+    if ai_analysis["risk_score"] > 5.0:
+        router.update_risk_penalty(data.current_location, data.next_destination, ai_analysis["risk_score"])
         
-    return {"status": "OK", "message": "Telemetry processed."}
+        # 3. Broadcast the exact AI mitigation plan to the React frontend LIVE
+        alert_payload = {
+            "type": "HIGH_RISK_ALERT",
+            "shipment": data.shipment_id,
+            "location": data.current_location,
+            "ai_analysis": ai_analysis
+        }
+        # Fire and forget the broadcast in the background
+        asyncio.create_task(manager.broadcast_alert(alert_payload))
 
-@app.post("/api/optimize-route")
-async def optimize_route(request: RouteRequest):
-    """The React dashboard calls this to get the fastest live route."""
-    path = router.compute_route(request.start_node, request.end_node)
-    
-    if not path:
-        raise HTTPException(status_code=404, detail="No viable route found")
-        
-    return {"optimized_path": path}
+    return {"status": "Telemetry processed", "ai_response": ai_analysis}
