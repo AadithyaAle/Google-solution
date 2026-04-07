@@ -79,3 +79,19 @@ async def process_telemetry(data: TelemetryPayload):
         asyncio.create_task(manager.broadcast_alert(alert_payload))
 
     return {"status": "Telemetry processed", "ai_response": ai_analysis}
+
+class OptimizeRouteRequest(BaseModel):
+    start_node: str
+    end_node: str
+
+@app.post("/api/optimize-route")
+async def optimize_route(request: OptimizeRouteRequest):
+    """Optimizes the supply chain route between two nodes."""
+    
+    # Notice we use 'compute_route' here to match our SupplyChainRouter class
+    optimized_path = router.compute_route(request.start_node, request.end_node)
+    
+    if optimized_path:
+        return {"optimized_path": optimized_path, "status": "success"}
+    else:
+        return {"optimized_path": None, "status": "failed", "message": "No route available"}

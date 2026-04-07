@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌍 Supply Chain Spine - B2B Control Tower
 
 Welcome to the team! This is a real-time, AI-powered supply chain monitoring system built for the Google Solution Challenge. 
@@ -72,3 +73,6 @@ git push origin feat/add-map-markers
 > **Note:** This is a living document. We will update the final project documentation once all features are integrated.
 
 
+=======
+Testing CI/CD Pipeline
+>>>>>>> ccce1643588f608231644015edf280160e7b3a8b
