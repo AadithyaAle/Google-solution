@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from ai_core.gemini_agent import evaluate_transit_risk
+from ai_core.ai_agent import evaluate_transit_risk
 from ai_core.routing import SupplyChainRouter
 import asyncio
 
@@ -16,9 +16,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize our Graph Router
+# Initialize our Graph Router with a realistic backbone
 router = SupplyChainRouter()
-router.add_path("Supplier_Delhi", "Factory_Mumbai", weight=10.0)
+router.initialize_network()
 
 # --- WEBSOCKET MANAGER ---
 class ConnectionManager:
@@ -45,6 +45,8 @@ class TelemetryPayload(BaseModel):
     next_destination: str
     weather_condition: str
     vibration_level: float
+    temperature: float
+    gps_coordinates: dict # {"lat": float, "lng": float}
 
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
@@ -68,17 +70,28 @@ async def process_telemetry(data: TelemetryPayload):
     if ai_analysis["risk_score"] > 5.0:
         router.update_risk_penalty(data.current_location, data.next_destination, ai_analysis["risk_score"])
         
-        # 3. Broadcast the exact AI mitigation plan to the React frontend LIVE
-        alert_payload = {
-            "type": "HIGH_RISK_ALERT",
-            "shipment": data.shipment_id,
-            "location": data.current_location,
-            "ai_analysis": ai_analysis
+    # 3. Broadcast update to all connected dashboard users
+    update_payload = {
+        "type": "TELEMETRY_UPDATE",
+        "shipment": data.shipment_id,
+        "location": data.current_location,
+        "gps": data.gps_coordinates,
+        "ai_analysis": ai_analysis,
+        "telemetry": {
+            "vibration": data.vibration_level,
+            "temperature": data.temperature,
+            "weather": data.weather_condition
         }
-        # Fire and forget the broadcast in the background
-        asyncio.create_task(manager.broadcast_alert(alert_payload))
+    }
+    # Fire and forget the broadcast in the background
+    asyncio.create_task(manager.broadcast_alert(update_payload))
 
     return {"status": "Telemetry processed", "ai_response": ai_analysis}
+
+@app.get("/api/network-status")
+async def get_network_status():
+    """Returns the current state of the supply chain graph."""
+    return router.get_network_state()
 
 class OptimizeRouteRequest(BaseModel):
     start_node: str
@@ -95,3 +108,7 @@ async def optimize_route(request: OptimizeRouteRequest):
         return {"optimized_path": optimized_path, "status": "success"}
     else:
         return {"optimized_path": None, "status": "failed", "message": "No route available"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

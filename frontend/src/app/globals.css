@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --background: 0, 0, 0;
+  --foreground: 255, 255, 255;
+  --selection: 255, 255, 255;
+}
+
+@theme {
+  --color-brand: #ffffff;
+  --color-border-dim: rgba(255, 255, 255, 0.1);
+  --color-bg-dim: rgba(255, 255, 255, 0.03);
+}
+
+body {
+  color: #ffffff;
+  background: #000000;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+@utility glass-card {
+  background-color: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@utility glass-morphic {
+  background-color: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@utility glow-white {
+  box-shadow: 0 0 15px -5px rgba(255, 255, 255, 0.3);
+}
+
+@utility mono-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Custom Scrollbar Monochrome */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+}
