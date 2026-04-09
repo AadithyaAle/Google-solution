@@ -2,30 +2,33 @@ name: Backend Tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
-        
-    - name: Install dependencies
+        python-version: '3.11'
+
+    - name: Install Dependencies
       run: |
-        cd backend
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        
+        cd backend
+        # Make sure we install all the new packages, including google-genai
+        pip install fastapi uvicorn pytest httpx networkx google-genai python-dotenv
+
     - name: Run Pytest
       env:
+        # We inject a fake API key here so the GitHub server doesn't crash 
+        # when gemini_agent.py looks for a key in the .env file!
         GEMINI_API_KEY: "dummy_key_for_github_actions"
       run: |
         cd backend
