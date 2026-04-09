@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from ai_core.ai_agent import evaluate_transit_risk, neural_copilot_chat
 from ai_core.routing import SupplyChainRouter
+from services.geo_fencing import check_geofence
 import asyncio
 import time
 
@@ -42,8 +43,13 @@ class TelemetryPayload(BaseModel):
     next_destination: str
     weather_condition: str
     vibration_level: float
+<<<<<<< HEAD
     temperature: float
     gps_coordinates: dict
+=======
+    latitude: float
+    longitude: float
+>>>>>>> 64b4183 (added new folders)
 
 class CopilotQuery(BaseModel):
     query: str
@@ -72,12 +78,33 @@ async def del_vehicle(vid: str):
 
 @app.post("/api/telemetry")
 async def process_telemetry(data: TelemetryPayload):
+<<<<<<< HEAD
     # Enhanced AI analysis including Health Index
     analysis = evaluate_transit_risk(data.model_dump())
+=======
+    """Ingests mock data from the simulator, checks Geo-Fences, and asks AI to evaluate risk."""
+
+    # --- 1. GEO-FENCING CHECK ---
+    fence_status = check_geofence(data.latitude, data.longitude, data.next_destination)
+    
+    if fence_status["status"] == "BREACHED":
+        # Broadcast an arrival alert to the Warehouse Manager instantly
+        arrival_payload = {
+            "type": "GEOFENCE_ALERT",
+            "shipment": data.shipment_id,
+            "destination": data.next_destination,
+            "message": fence_status["message"]
+        }
+        asyncio.create_task(manager.broadcast_alert(arrival_payload))
+        
+        # If it arrived safely, we don't need to ask the AI for a route risk anymore!
+        return {"status": "Arrived at destination", "geofence": fence_status}
+>>>>>>> 64b4183 (added new folders)
     
     recent_risk_scores.append(analysis["risk_score"])
     if len(recent_risk_scores) > 50: recent_risk_scores.pop(0)
 
+<<<<<<< HEAD
     # Broadcast enriched data
     update = {
         "type": "TELEMETRY_UPDATE",
@@ -94,6 +121,9 @@ async def process_telemetry(data: TelemetryPayload):
     }
     asyncio.create_task(manager.broadcast(update))
     return {"status": "ok", "ai": analysis}
+=======
+    return {"status": "Telemetry processed", "ai_response": ai_analysis, "geofence": fence_status}
+>>>>>>> 64b4183 (added new folders)
 
 @app.post("/api/copilot")
 async def copilot_chat(q: CopilotQuery):
