@@ -1,44 +1,41 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from ai_core.ai_agent import evaluate_transit_risk
+from ai_core.ai_agent import evaluate_transit_risk, neural_copilot_chat
 from ai_core.routing import SupplyChainRouter
 import asyncio
+import time
 
-app = FastAPI(title="Supply Chain Control Tower")
+app = FastAPI(title="Zenith OS - Command Center")
 
-# Allow the React frontend to talk to the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize our Graph Router with a realistic backbone
+# Global State
 router = SupplyChainRouter()
 router.initialize_network()
+vehicles_db: dict = {}
+recent_risk_scores: list = []
 
-# --- WEBSOCKET MANAGER ---
+# --- WEBSOCKET ---
 class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast_alert(self, message: dict):
-        for connection in self.active_connections:
-            await connection.send_json(message)
+    def __init__(self): self.active_connections = []
+    async def connect(self, ws): await ws.accept(); self.active_connections.append(ws)
+    def disconnect(self, ws): 
+        if ws in self.active_connections: self.active_connections.remove(ws)
+    async def broadcast(self, msg):
+        for c in self.active_connections:
+            try: await c.send_json(msg)
+            except: self.active_connections.remove(c)
 
 manager = ConnectionManager()
-# -------------------------
 
+# --- MODELS ---
 class TelemetryPayload(BaseModel):
     shipment_id: str
     current_location: str
@@ -46,68 +43,82 @@ class TelemetryPayload(BaseModel):
     weather_condition: str
     vibration_level: float
     temperature: float
-    gps_coordinates: dict # {"lat": float, "lng": float}
+    gps_coordinates: dict
 
+class CopilotQuery(BaseModel):
+    query: str
+    context: dict = {}
+
+# --- ENDPOINTS ---
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
-    """The frontend will connect to this endpoint to listen for live AI alerts."""
     await manager.connect(websocket)
     try:
-        while True:
-            # Keep the connection open
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        while True: await websocket.receive_text()
+    except WebSocketDisconnect: manager.disconnect(websocket)
+
+@app.get("/api/vehicles")
+async def get_vehicles(): return {"vehicles": list(vehicles_db.values())}
+
+@app.post("/api/vehicles")
+async def add_vehicle(v: dict): 
+    vehicles_db[v["id"]] = v
+    return {"status": "ok"}
+
+@app.delete("/api/vehicles/{vid}")
+async def del_vehicle(vid: str):
+    if vid in vehicles_db: del vehicles_db[vid]
+    return {"status": "ok"}
 
 @app.post("/api/telemetry")
 async def process_telemetry(data: TelemetryPayload):
-    """Ingests mock data from the simulator and asks AI to evaluate risk."""
+    # Enhanced AI analysis including Health Index
+    analysis = evaluate_transit_risk(data.model_dump())
     
-    # 1. Ask Gemini for the structured JSON response
-    ai_analysis = evaluate_transit_risk(data.model_dump())
-    
-    # 2. If the AI predicts a major disruption, update the graph
-    if ai_analysis["risk_score"] > 5.0:
-        router.update_risk_penalty(data.current_location, data.next_destination, ai_analysis["risk_score"])
-        
-    # 3. Broadcast update to all connected dashboard users
-    update_payload = {
+    recent_risk_scores.append(analysis["risk_score"])
+    if len(recent_risk_scores) > 50: recent_risk_scores.pop(0)
+
+    # Broadcast enriched data
+    update = {
         "type": "TELEMETRY_UPDATE",
         "shipment": data.shipment_id,
         "location": data.current_location,
         "gps": data.gps_coordinates,
-        "ai_analysis": ai_analysis,
+        "ai_analysis": analysis,
         "telemetry": {
             "vibration": data.vibration_level,
             "temperature": data.temperature,
-            "weather": data.weather_condition
-        }
+            "weather": data.weather_condition,
+        },
+        "timestamp": time.time()
     }
-    # Fire and forget the broadcast in the background
-    asyncio.create_task(manager.broadcast_alert(update_payload))
+    asyncio.create_task(manager.broadcast(update))
+    return {"status": "ok", "ai": analysis}
 
-    return {"status": "Telemetry processed", "ai_response": ai_analysis}
+@app.post("/api/copilot")
+async def copilot_chat(q: CopilotQuery):
+    # Give the AI context of the whole system
+    full_state = {
+        "vehicles": list(vehicles_db.values()),
+        "risk_trends": recent_risk_scores,
+        "network": router.get_network_state()
+    }
+    response = neural_copilot_chat(q.query, full_state)
+    return response
+
+@app.get("/api/stats")
+async def get_stats():
+    net = router.get_network_state()
+    avg_risk = sum(recent_risk_scores)/len(recent_risk_scores) if recent_risk_scores else 0
+    return {
+        "node_count": len(net["nodes"]),
+        "link_count": len(net["links"]),
+        "avg_risk": round(avg_risk, 2),
+        "fleet_size": len(vehicles_db)
+    }
 
 @app.get("/api/network-status")
-async def get_network_status():
-    """Returns the current state of the supply chain graph."""
-    return router.get_network_state()
-
-class OptimizeRouteRequest(BaseModel):
-    start_node: str
-    end_node: str
-
-@app.post("/api/optimize-route")
-async def optimize_route(request: OptimizeRouteRequest):
-    """Optimizes the supply chain route between two nodes."""
-    
-    # Notice we use 'compute_route' here to match our SupplyChainRouter class
-    optimized_path = router.compute_route(request.start_node, request.end_node)
-    
-    if optimized_path:
-        return {"optimized_path": optimized_path, "status": "success"}
-    else:
-        return {"optimized_path": None, "status": "failed", "message": "No route available"}
+async def get_net(): return router.get_network_state()
 
 if __name__ == "__main__":
     import uvicorn

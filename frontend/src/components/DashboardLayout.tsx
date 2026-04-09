@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Shield, Truck, AlertTriangle, LayoutDashboard, Database, Bell, Search, User, LogOut, Cpu } from 'lucide-react';
+import { Shield, Truck, AlertTriangle, LayoutDashboard, Bell, LogOut, Cpu, Activity, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 
@@ -15,73 +15,79 @@ export default function DashboardLayout({ children, onTabChange, currentTab }: P
     const { logout, companyName } = useStore();
 
     return (
-        <div className="min-h-screen bg-black text-white flex font-sans selection:bg-white selection:text-black overflow-hidden h-screen">
+        <div className="min-h-screen text-[--text-primary] flex font-sans overflow-hidden h-screen"
+            style={{ background: 'var(--bg-base)' }}>
+
             {/* Sidebar */}
-            <aside className="w-64 bg-black border-r border-white/10 flex flex-col z-50 overflow-y-auto shrink-0">
-                <div className="p-10 pb-12">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex flex-col gap-4"
-                    >
-                        <div className="p-3 bg-white w-fit">
-                            <Shield className="w-6 h-6 text-black" />
+            <aside className="w-64 flex flex-col z-50 shrink-0 border-r"
+                style={{
+                    background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%)',
+                    borderColor: 'var(--border-dim)'
+                }}>
+
+                {/* Logo */}
+                <div className="p-8 pb-10">
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center glow-purple"
+                                style={{ background: 'linear-gradient(135deg, #6c63ff, #00d4ff)' }}>
+                                <Shield className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-black tracking-tight text-gradient">ZENITH OS</h2>
+                                <p className="text-[9px] font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--text-muted)' }}>
+                                    Enterprise Edition
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-lg font-black tracking-tighter uppercase whitespace-nowrap leading-none">
-                                ZENITH OS
-                            </h2>
-                            <p className="text-[8px] font-black text-white/20 tracking-[0.4em] uppercase mt-2">Enterprise Edition</p>
+
+                        {/* System Status */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                            style={{ background: 'rgba(0,229,160,0.08)', border: '1px solid rgba(0,229,160,0.2)' }}>
+                            <div className="w-2 h-2 rounded-full bg-[#00e5a0] animate-pulse" />
+                            <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#00e5a0' }}>
+                                Kernel::Stable
+                            </span>
                         </div>
                     </motion.div>
                 </div>
 
+                {/* Navigation */}
                 <nav className="flex-1 px-4 space-y-1">
-                    <NavItem
-                        icon={<LayoutDashboard size={14} />}
-                        label="DASHBOARD"
-                        active={currentTab === 'DASHBOARD'}
-                        onClick={() => onTabChange?.('DASHBOARD')}
-                    />
-                    <NavItem
-                        icon={<Truck size={14} />}
-                        label="ACTIVE FLEET"
-                        active={currentTab === 'ACTIVE FLEET'}
-                        onClick={() => onTabChange?.('ACTIVE FLEET')}
-                    />
-                    <NavItem
-                        icon={<AlertTriangle size={14} />}
-                        label="RISK MONITORING"
-                        active={currentTab === 'RISK MONITORING'}
-                        onClick={() => onTabChange?.('RISK MONITORING')}
-                    />
+                    <p className="text-[8px] font-black tracking-[0.35em] uppercase px-4 mb-3" style={{ color: 'var(--text-muted)' }}>
+                        Command Center
+                    </p>
+                    <NavItem icon={<LayoutDashboard size={15} />} label="Dashboard" active={currentTab === 'DASHBOARD'} onClick={() => onTabChange?.('DASHBOARD')} />
+                    <NavItem icon={<Truck size={15} />} label="Active Fleet" active={currentTab === 'ACTIVE FLEET'} onClick={() => onTabChange?.('ACTIVE FLEET')} />
+                    <NavItem icon={<AlertTriangle size={15} />} label="Risk Monitoring" active={currentTab === 'RISK MONITORING'} onClick={() => onTabChange?.('RISK MONITORING')} />
 
-                    <div className="pt-10 pb-4 px-4">
-                        <div className="h-px bg-white/10 w-8" />
+                    <div className="pt-6 pb-3 px-4">
+                        <div className="h-px w-full" style={{ background: 'var(--border-dim)' }} />
                     </div>
-
-                    <NavItem
-                        icon={<Cpu size={14} />}
-                        label="ORCHESTRATION"
-                        active={currentTab === 'ORCHESTRATION'}
-                        onClick={() => onTabChange?.('ORCHESTRATION')}
-                    />
-                    <NavItem
-                        icon={<Bell size={14} />}
-                        label="NOTIFICATIONS"
-                        active={currentTab === 'NOTIFICATIONS'}
-                        onClick={() => onTabChange?.('NOTIFICATIONS')}
-                    />
+                    <p className="text-[8px] font-black tracking-[0.35em] uppercase px-4 mb-3" style={{ color: 'var(--text-muted)' }}>System</p>
+                    <NavItem icon={<Cpu size={15} />} label="Orchestration" active={currentTab === 'ORCHESTRATION'} onClick={() => onTabChange?.('ORCHESTRATION')} />
+                    <NavItem icon={<Bell size={15} />} label="Notifications" active={currentTab === 'NOTIFICATIONS'} onClick={() => onTabChange?.('NOTIFICATIONS')} />
                 </nav>
 
-                <div className="p-6">
-                    <div className="p-6 border border-white/10 bg-white/5 mb-4 group hover:border-white/30 transition-all cursor-crosshair">
-                        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1 group-hover:text-white/40">Registered Entity</p>
-                        <p className="text-[11px] font-black truncate tracking-tighter">{companyName?.toUpperCase() || 'EXTERNAL_NODE'}</p>
+                {/* User Card */}
+                <div className="p-5">
+                    <div className="rounded-xl p-4 mb-4 space-y-3"
+                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black text-white"
+                                style={{ background: 'linear-gradient(135deg, #6c63ff, #00d4ff)' }}>
+                                {companyName?.charAt(0)?.toUpperCase() || 'Z'}
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold truncate">{companyName?.toUpperCase() || 'EXTERNAL_NODE'}</p>
+                                <p className="text-[8px]" style={{ color: 'var(--text-muted)' }}>Super Admin</p>
+                            </div>
+                        </div>
                     </div>
                     <button
                         onClick={logout}
-                        className="w-full flex items-center justify-center gap-3 py-4 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all active:scale-95"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style={{ background: 'rgba(255,61,110,0.08)', border: '1px solid rgba(255,61,110,0.25)', color: '#ff3d6e' }}
                     >
                         <LogOut size={12} />
                         Detach Session
@@ -91,31 +97,30 @@ export default function DashboardLayout({ children, onTabChange, currentTab }: P
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0">
-                <header className="h-16 bg-black border-b border-white/10 flex items-center justify-between px-10 z-40 shrink-0">
-                    <div className="flex items-center gap-6">
-                        <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 w-3.5 h-3.5 group-hover:text-white/40 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="SEARCH_GRID_INDEX..."
-                                className="bg-transparent border border-white/10 rounded-none py-2 pl-10 pr-6 text-[10px] font-bold tracking-[0.1em] focus:outline-none focus:border-white/30 w-72 transition-all uppercase placeholder:opacity-20 placeholder:font-black"
-                            />
-                        </div>
+                {/* Top Header */}
+                <header className="h-16 flex items-center justify-between px-10 shrink-0 border-b"
+                    style={{ background: 'rgba(13,13,26,0.8)', borderColor: 'var(--border-dim)', backdropFilter: 'blur(20px)' }}>
+                    <div className="flex items-center gap-3">
+                        <Activity size={14} style={{ color: 'var(--accent-primary)' }} />
+                        <span className="text-sm font-semibold capitalize" style={{ color: 'var(--text-secondary)' }}>
+                            {currentTab?.toLowerCase() || 'dashboard'}
+                        </span>
+                        <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />
+                        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+                            Zenith OS
+                        </span>
                     </div>
 
-                    <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.4em] text-white/20 border-r border-white/10 pr-8">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-none shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                            Kernel::Stable
+                    <div className="flex items-center gap-4">
+                        <div className="px-4 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase"
+                            style={{ background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.25)', color: '#6c63ff' }}>
+                            {useStore.getState().userEmail?.split('@')[0] ?? 'OPERATOR'}
                         </div>
-                        <button className="flex items-center gap-3 p-1.5 border border-white/10 hover:border-white transition-all text-[10px] font-black uppercase tracking-widest px-6 group">
-                            <User size={14} className="opacity-30 group-hover:opacity-100 transition-opacity" />
-                            <span className="group-hover:tracking-[0.2em] transition-all">Super_Admin</span>
-                        </button>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-auto bg-black p-12 custom-scrollbar">
+                <div className="flex-1 overflow-auto p-8"
+                    style={{ background: 'var(--bg-base)' }}>
                     {children}
                 </div>
             </main>
@@ -125,18 +130,29 @@ export default function DashboardLayout({ children, onTabChange, currentTab }: P
 
 function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
     return (
-        <button
+        <motion.button
+            whileHover={{ x: 2 }}
             onClick={onClick}
-            className={`w-full flex items-center gap-4 px-6 py-4 transition-all duration-200 relative border group ${active
-                    ? 'bg-white text-black border-white font-black z-10 shadow-[0_10px_30px_rgba(255,255,255,0.1)]'
-                    : 'text-white/30 border-transparent hover:text-white hover:border-white/10'
-                }`}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group text-left"
+            style={active ? {
+                background: 'linear-gradient(135deg, rgba(108,99,255,0.2), rgba(0,212,255,0.1))',
+                border: '1px solid rgba(108,99,255,0.4)',
+                color: 'white',
+                boxShadow: '0 4px 20px rgba(108,99,255,0.15)'
+            } : {
+                background: 'transparent',
+                border: '1px solid transparent',
+                color: 'var(--text-muted)'
+            }}
         >
-            <span className={active ? '' : 'opacity-40 group-hover:opacity-100 transition-all'}>
+            <span style={active ? { color: '#6c63ff' } : {}}>
                 {icon}
             </span>
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase">{label}</span>
-            {active && <div className="absolute right-0 w-[4px] h-full bg-black/10" />}
-        </button>
+            <span className="text-[11px] font-semibold tracking-wider">{label}</span>
+            {active && (
+                <div className="absolute right-3 w-1.5 h-1.5 rounded-full"
+                    style={{ background: 'var(--accent-primary)', boxShadow: '0 0 6px var(--accent-primary)' }} />
+            )}
+        </motion.button>
     );
 }

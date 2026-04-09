@@ -17,6 +17,13 @@ export default function ConfigView() {
             id,
             type,
             model,
+            vin: `VIN_${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+            plate_number: `PLT_${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            manufacture_year: 2024,
+            fuel_type: 'DIESEL',
+            payload_capacity_kg: 10000,
+            last_service_date: new Date().toISOString().split('T')[0],
+            insurance_policy: 'PENDING_INIT',
             status: 'ACTIVE'
         });
         setSuccess(true);

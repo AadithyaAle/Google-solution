@@ -1,74 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: 0, 0, 0;
-  --foreground: 255, 255, 255;
-  --selection: 255, 255, 255;
-}
+  /* Deep Space Color Palette */
+  --bg-base: #05050f;
+  --bg-surface: #0d0d1a;
+  --bg-card: #111128;
+  --bg-elevated: #1a1a35;
 
-@theme {
-  --color-brand: #ffffff;
-  --color-border-dim: rgba(255, 255, 255, 0.1);
-  --color-bg-dim: rgba(255, 255, 255, 0.03);
+  --accent-primary: #6c63ff;
+  /* Electric Violet */
+  --accent-secondary: #00d4ff;
+  /* Neon Cyan */
+  --accent-success: #00e5a0;
+  /* Emerald Mint */
+  --accent-warning: #ff8b3d;
+  /* Amber */
+  --accent-danger: #ff3d6e;
+  /* Rose Red */
+
+  --border-dim: rgba(108, 99, 255, 0.15);
+  --border-glow: rgba(108, 99, 255, 0.4);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+
+  --text-primary: #e8e8ff;
+  --text-secondary: rgba(232, 232, 255, 0.5);
+  --text-muted: rgba(232, 232, 255, 0.25);
 }
 
 body {
-  color: #ffffff;
-  background: #000000;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(108, 99, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+  font-family: 'Inter', 'Space Grotesk', sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-@utility glass-card {
-  background-color: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* === Glass Card System === */
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(108, 99, 255, 0.04) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-dim);
 }
 
-@utility glass-morphic {
-  background-color: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.glass-card-hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(108, 99, 255, 0.06) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(108, 99, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(108, 99, 255, 0.15);
 }
 
-@utility glow-white {
-  box-shadow: 0 0 15px -5px rgba(255, 255, 255, 0.3);
+/* === Glow Effects === */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.3), 0 0 60px rgba(108, 99, 255, 0.1);
 }
 
-@utility mono-border {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 60px rgba(0, 212, 255, 0.1);
 }
 
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(0, 229, 160, 0.3);
+}
+
+/* === Animated Gradient Borders === */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* === Accent Text Gradient === */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* === Status Badges === */
+.badge-active {
+  background: rgba(0, 229, 160, 0.12);
+  border: 1px solid rgba(0, 229, 160, 0.35);
+  color: #00e5a0;
+}
+
+.badge-warn {
+  background: rgba(255, 139, 61, 0.12);
+  border: 1px solid rgba(255, 139, 61, 0.35);
+  color: #ff8b3d;
+}
+
+.badge-danger {
+  background: rgba(255, 61, 110, 0.12);
+  border: 1px solid rgba(255, 61, 110, 0.35);
+  color: #ff3d6e;
+}
+
+.badge-idle {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* === Slide-in Animation === */
+.slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Animated Pulse === */
 .animate-pulse-slow {
-  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulseGlow 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes pulseGlow {
 
   0%,
   100% {
     opacity: 1;
+    box-shadow: 0 0 8px rgba(0, 229, 160, 0.4);
   }
 
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
+    box-shadow: 0 0 0px transparent;
   }
 }
 
-/* Custom Scrollbar Monochrome */
+/* === Scan Line Animation === */
+@keyframes scanline {
+  0% {
+    top: -10%;
+  }
+
+  100% {
+    top: 110%;
+  }
+}
+
+/* === Custom Scrollbar === */
 ::-webkit-scrollbar {
   width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: transparent;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 0px;
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #fff;
+  background: var(--accent-secondary);
+}
+
+/* === Leaflet Map === */
+.leaflet-container {
+  background: #05050f !important;
+  filter: hue-rotate(200deg) saturate(0.4) brightness(0.7);
+}
+
+.leaflet-tooltip {
+  background: rgba(13, 13, 26, 0.95) !important;
+  border: 1px solid rgba(108, 99, 255, 0.4) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', monospace;
+  font-size: 11px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 32px rgba(108, 99, 255, 0.2) !important;
+}
+
+.leaflet-tooltip::before {
+  display: none;
+}
+
+/* === Premium Input Focus === */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(108, 99, 255, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
 }
