@@ -6,7 +6,7 @@ from ai_core.routing import SupplyChainRouter
 import asyncio
 import time
 
-app = FastAPI(title="Zenith OS - Command Center")
+app = FastAPI(title="JKY AI - Command Center")
 
 app.add_middleware(
     CORSMiddleware,

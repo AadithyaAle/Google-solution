@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { Brain, Send, Cpu, Activity, ShieldCheck, AlertCircle, Zap } from 'lucide-react';
+import { Brain, Send, Cpu, Activity, ShieldCheck, AlertCircle, Zap, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -42,7 +42,7 @@ export default function CopilotPanel() {
                     active_shipments: Object.keys(shipments).length,
                     avg_risk: networkStats?.avg_risk || 0
                 }
-            });
+            }, { timeout: 10000 });
 
             addCopilotMessage({
                 id: (Date.now() + 1).toString(),
@@ -55,7 +55,7 @@ export default function CopilotPanel() {
             addCopilotMessage({
                 id: (Date.now() + 1).toString(),
                 role: 'COPILOT',
-                content: 'ERROR: Neural link synchronization failed. Check backend connection.',
+                content: "CRITICAL ERROR: Neural Synchronization Failed.\n\nTechnical Details: I cannot establish a stable link with the JKY AI Core node. Please ensure the backend server is operational and your OpenAI credentials are valid in the system configuration.",
                 timestamp: new Date().toISOString(),
                 sentiment: 'ALERT'
             });
@@ -65,85 +65,57 @@ export default function CopilotPanel() {
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden relative"
-            style={{ background: 'var(--bg-surface)' }}>
-
-            {/* Header */}
-            <div className="px-5 py-4 flex items-center justify-between border-b"
-                style={{ borderColor: 'var(--border-dim)', background: 'var(--bg-card)' }}>
-                <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-lg" style={{ background: 'rgba(108,99,255,0.15)' }}>
-                        <Brain size={14} style={{ color: '#6c63ff' }} />
-                    </div>
-                    <div>
-                        <span className="text-[11px] font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>Neural Copilot</span>
-                        <span className="text-[8px] font-medium ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(108,99,255,0.1)', color: '#6c63ff' }}>v4.0</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                    style={{ background: 'rgba(0,229,160,0.08)', border: '1px solid rgba(0,229,160,0.2)' }}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00e5a0] animate-pulse" />
-                    <span className="text-[8px] font-bold tracking-widest uppercase" style={{ color: '#00e5a0' }}>Live</span>
-                </div>
-            </div>
-
-            {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
+        <div className="flex flex-col h-full overflow-hidden bg-transparent">
+            {/* Message Stream */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar scroll-smooth">
                 {copilotMessages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full gap-4 py-12 text-center">
-                        <div className="p-5 rounded-2xl" style={{ background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)' }}>
-                            <Zap size={28} style={{ color: '#6c63ff' }} />
+                    <div className="flex flex-col items-center justify-center h-full gap-6 py-12 text-center">
+                        <div className="w-16 h-16 rounded-3xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shadow-2xl">
+                            <Zap size={32} className="text-violet-500 animate-pulse" />
                         </div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Neural Copilot Ready</p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Ask about fleet health, risks, or route optimization</p>
+                        <div className="space-y-2">
+                            <p className="text-sm font-black font-brand uppercase tracking-widest text-slate-200">JKY Node Online</p>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest max-w-[200px] leading-relaxed">
+                                Standing by for orchestration commands or system queries.
+                            </p>
+                        </div>
                     </div>
                 )}
 
                 <AnimatePresence initial={false}>
                     {copilotMessages.map((msg) => {
                         const isUser = msg.role === 'USER';
-                        const isCritical = msg.sentiment === 'ALERT';
+                        const isError = msg.sentiment === 'ALERT';
                         return (
                             <motion.div
                                 key={msg.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
+                                initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
                             >
-                                <div className="flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                                    {isUser ? <Activity size={9} /> : <Cpu size={9} />}
-                                    <span className="text-[8px] font-medium">
-                                        {msg.role} · {new Date(msg.timestamp).toLocaleTimeString([], { hour12: false })}
+                                <div className="flex items-center gap-2 group">
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                                        {msg.role} // {new Date(msg.timestamp).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
                                     </span>
                                 </div>
-                                <div className={`max-w-[90%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed`}
-                                    style={isUser ? {
-                                        background: 'linear-gradient(135deg, rgba(108,99,255,0.2), rgba(0,212,255,0.1))',
-                                        border: '1px solid rgba(108,99,255,0.3)',
-                                        color: 'var(--text-primary)',
-                                        borderBottomRightRadius: '4px'
-                                    } : isCritical ? {
-                                        background: 'rgba(255,61,110,0.08)',
-                                        border: '1px solid rgba(255,61,110,0.3)',
-                                        color: 'var(--text-primary)',
-                                        borderBottomLeftRadius: '4px'
-                                    } : {
-                                        background: 'rgba(255,255,255,0.04)',
-                                        border: '1px solid var(--border-dim)',
-                                        color: 'var(--text-secondary)',
-                                        borderBottomLeftRadius: '4px'
-                                    }}>
-                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                <div className={`max-w-[92%] rounded-2xl px-5 py-4 text-[12px] leading-relaxed border relative group ${isUser
+                                    ? 'bg-violet-600/10 border-violet-600/30 text-slate-100 rounded-br-none'
+                                    : isError
+                                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-100 rounded-bl-none'
+                                        : 'bg-slate-900/60 border-white/5 text-slate-300 rounded-bl-none'
+                                    } shadow-xl`}>
+                                    <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+
                                     {!isUser && msg.sentiment === 'SUCCESS' && (
-                                        <div className="flex items-center gap-1.5 mt-2">
-                                            <ShieldCheck size={10} style={{ color: '#00e5a0' }} />
-                                            <span className="text-[9px]" style={{ color: '#00e5a0' }}>System Secure</span>
+                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-emerald-500/10">
+                                            <ShieldCheck size={12} className="text-emerald-500" />
+                                            <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest">Operation Verified</span>
                                         </div>
                                     )}
-                                    {!isUser && isCritical && (
-                                        <div className="flex items-center gap-1.5 mt-2">
-                                            <AlertCircle size={10} style={{ color: '#ff3d6e' }} className="animate-pulse" />
-                                            <span className="text-[9px]" style={{ color: '#ff3d6e' }}>Alert Active</span>
+                                    {!isUser && isError && (
+                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-rose-500/10">
+                                            <AlertCircle size={12} className="text-rose-500" />
+                                            <span className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Protocol Failure</span>
                                         </div>
                                     )}
                                 </div>
@@ -153,47 +125,47 @@ export default function CopilotPanel() {
                 </AnimatePresence>
 
                 {isTyping && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
-                        <div className="flex gap-1 px-4 py-3 rounded-2xl" style={{ background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)' }}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-4">
+                        <div className="flex gap-1.5 px-4 py-3 rounded-2xl bg-white/5 border border-white/10">
                             {[0, 1, 2].map(i => (
-                                <motion.div key={i} className="w-1.5 h-1.5 rounded-full"
-                                    style={{ background: '#6c63ff' }}
-                                    animate={{ y: [0, -4, 0] }}
-                                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                                <motion.div key={i} className="w-1 h-1 rounded-full bg-violet-400"
+                                    animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+                                    transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
                                 />
                             ))}
                         </div>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Neural is thinking...</span>
+                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Computing Grid State...</span>
                     </motion.div>
                 )}
             </div>
 
-            {/* Input */}
-            <form onSubmit={handleSend} className="p-4 border-t" style={{ borderColor: 'var(--border-dim)', background: 'var(--bg-card)' }}>
-                <div className="flex gap-2">
+            {/* Terminal Input */}
+            <div className="p-6 bg-white/[0.01] border-t border-white/5">
+                <form onSubmit={handleSend} className="relative group">
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-violet-500 transition-colors">
+                        <Terminal size={16} />
+                    </div>
                     <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask Neural Copilot..."
-                        className="flex-1 rounded-xl px-4 py-3 text-[11px] font-medium transition-all"
-                        style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid var(--border-dim)',
-                            color: 'var(--text-primary)',
-                            outline: 'none'
-                        }}
+                        placeholder="Neural Command Input..."
+                        className="w-full bg-slate-900/50 border border-white/10 rounded-2xl py-4 pl-14 pr-16 text-sm font-medium transition-all focus:outline-none focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/5 placeholder:text-slate-600"
                     />
                     <motion.button
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
                         type="submit"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-3 rounded-xl transition-all"
-                        style={{ background: 'linear-gradient(135deg, #6c63ff, #00d4ff)', color: 'white' }}
+                        disabled={isTyping}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-lg transform transition-all hover:bg-violet-500 disabled:opacity-50"
                     >
-                        <Send size={15} />
+                        <Send size={18} />
                     </motion.button>
+                </form>
+                <div className="mt-3 flex items-center justify-between">
+                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest px-1">Ready for Instruction</span>
+                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest px-1">JKY v4.2.0</span>
                 </div>
-            </form>
+            </div>
         </div>
     );
 }

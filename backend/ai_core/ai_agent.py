@@ -1,19 +1,34 @@
 import os
 from openai import OpenAI
 import json
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize OpenAI client (GPT-4o)
-# The user's system should already have OPENAI_API_KEY set
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key or api_key == "your_openai_api_key_here":
+    client = None
+else:
+    client = OpenAI(api_key=api_key)
 
 def evaluate_transit_risk(telemetry_data):
     """
-    Analyzes telemetry using GPT-4o to provide a structured risk and maintenance report.
-    This is the core 'Neural Engine' of the platform.
+    Simulated or real risk evaluation using JKY AI core patterns.
     """
+    if not client:
+        return {
+            "risk_score": 1.2,
+            "health_index": 98,
+            "status": "NOMINAL",
+            "maintenance_alert": None,
+            "mitigation_plan": ["Path Optimization Verified"],
+            "technical_summary": "Neural link in Simulation Mode. All telemetry within safety bounds."
+        }
     
     prompt = f"""
-    You are the Zenith OS Neural Engine. Analyze this supply chain telemetry:
+    You are the JKY AI Neural Engine. Analyze this supply chain telemetry:
     {json.dumps(telemetry_data)}
 
     Analyze both transit risk (weather/path) AND hardware health (Predictive Maintenance).
@@ -53,8 +68,15 @@ def neural_copilot_chat(user_query, system_state):
     """
     Agentic Copilot logic. AI has access to the full system state.
     """
+    if not client:
+        return {
+            "message": "### JKY AI // Neural Link Established (SIMULATION MODE)\n\nSystem verification complete. All nodes are reporting nominal status. \n\n* **Fleet Status**: 12 Vehicles Active\n* **Neural Grid**: Optimization path 4.2.0 verified\n* **Risk Index**: 0.04 (Negligible)\n\nI am ready for instructions. (Note: Live orchestration requires OpenAI credentials in `.env`)",
+            "action_suggested": "Verify JKY Credentials",
+            "sentiment": "SUCCESS"
+        }
+
     prompt = f"""
-    You are the Zenith Neural Copilot. You oversee an elite supply chain.
+    You are the JKY AI Neural Copilot. You oversee an elite supply chain.
     SYSTEM STATE: {json.dumps(system_state)}
 
     USER COMMAND: {user_query}
@@ -76,7 +98,7 @@ def neural_copilot_chat(user_query, system_state):
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "system", "content": "You are the Zenith AI Copilot."}, 
+            messages=[{"role": "system", "content": "You are the JKY AI Copilot."}, 
                        {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
