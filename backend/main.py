@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from ai_core.gemini_agent import evaluate_transit_risk
 from ai_core.routing import SupplyChainRouter
+from services.geo_fencing import check_geofence
 import asyncio
 
 app = FastAPI(title="Supply Chain Control Tower")
@@ -45,6 +46,8 @@ class TelemetryPayload(BaseModel):
     next_destination: str
     weather_condition: str
     vibration_level: float
+    latitude: float
+    longitude: float
 
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
@@ -59,7 +62,23 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.post("/api/telemetry")
 async def process_telemetry(data: TelemetryPayload):
-    """Ingests mock data from the simulator and asks AI to evaluate risk."""
+    """Ingests mock data from the simulator, checks Geo-Fences, and asks AI to evaluate risk."""
+
+    # --- 1. GEO-FENCING CHECK ---
+    fence_status = check_geofence(data.latitude, data.longitude, data.next_destination)
+    
+    if fence_status["status"] == "BREACHED":
+        # Broadcast an arrival alert to the Warehouse Manager instantly
+        arrival_payload = {
+            "type": "GEOFENCE_ALERT",
+            "shipment": data.shipment_id,
+            "destination": data.next_destination,
+            "message": fence_status["message"]
+        }
+        asyncio.create_task(manager.broadcast_alert(arrival_payload))
+        
+        # If it arrived safely, we don't need to ask the AI for a route risk anymore!
+        return {"status": "Arrived at destination", "geofence": fence_status}
     
     # 1. Ask Gemini for the structured JSON response
     ai_analysis = evaluate_transit_risk(data.model_dump())
@@ -78,7 +97,7 @@ async def process_telemetry(data: TelemetryPayload):
         # Fire and forget the broadcast in the background
         asyncio.create_task(manager.broadcast_alert(alert_payload))
 
-    return {"status": "Telemetry processed", "ai_response": ai_analysis}
+    return {"status": "Telemetry processed", "ai_response": ai_analysis, "geofence": fence_status}
 
 class OptimizeRouteRequest(BaseModel):
     start_node: str
