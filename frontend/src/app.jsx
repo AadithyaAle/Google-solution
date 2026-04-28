@@ -27,6 +27,8 @@ export default function App() {
   const [warehouseQuery, setWarehouseQuery] = useState("");
   const [fleetStatusFilter, setFleetStatusFilter] = useState("all");
   const [warehouseStatusFilter, setWarehouseStatusFilter] = useState("all");
+  const [dashVehicleFilter, setDashVehicleFilter] = useState("all");
+  const [dashRiskFilter, setDashRiskFilter] = useState("all");
 
   const [whForm, setWhForm] = useState({ name: "", city: "", lat: "", lng: "" });
   const [vhForm, setVhForm] = useState({ vehicle_id: "", driver: "", vehicle_type: "truck", status: "in_transit", risk: "safe", speed_kmh: 0, city: "", from_warehouse: "", to_warehouse: "" });
@@ -51,6 +53,24 @@ export default function App() {
       return textMatch && statusMatch;
     });
   }, [warehouses, warehouseQuery, warehouseStatusFilter]);
+  const dashboardVehicles = useMemo(() => {
+    return fleet.filter((f) => {
+      const byStatus = dashVehicleFilter === "all" ? true : f.status === dashVehicleFilter;
+      const byRisk = dashRiskFilter === "all" ? true : f.risk === dashRiskFilter;
+      return byStatus && byRisk;
+    });
+  }, [fleet, dashVehicleFilter, dashRiskFilter]);
+  const dashboardCards = useMemo(() => {
+    const totalSpeed = dashboardVehicles.reduce((s, v) => s + (Number(v.speed_kmh) || 0), 0);
+    const avgSpeed = dashboardVehicles.length ? (totalSpeed / dashboardVehicles.length).toFixed(1) : "0.0";
+    const activeDrivers = new Set(dashboardVehicles.map((v) => v.driver).filter(Boolean)).size;
+    return [
+      ["Avg Speed", `${avgSpeed} km/h`, "speed"],
+      ["Active Drivers", activeDrivers, "drivers"],
+      ["Routes Live", dashboardVehicles.filter((v) => v.from_warehouse && (v.to_warehouse || v.warehouse)).length, "routes"],
+      ["Risk Vehicles", dashboardVehicles.filter((v) => v.risk === "high").length, "risk"],
+    ];
+  }, [dashboardVehicles]);
 
   const loadAll = async () => {
     try {
@@ -128,7 +148,20 @@ export default function App() {
       {loading && <section className="panel">{t.loading}</section>}
       {error && <section className="panel error">{error} <button onClick={loadAll}>{t.retry}</button></section>}
       {flash && <section className="panel" style={{ borderColor: "#2c7a64" }}>{flash}</section>}
-      {!loading && view === "dashboard" && <><NodeStats kpis={dashboard.kpis} /><div className="dashboard-grid"><LiveMap mapData={mapData} /><AlertFeed alerts={dashboard.alerts} /></div></>}
+      {!loading && view === "dashboard" && <>
+        <div className="fleet-subtitle">Real-time overview of your operations</div>
+        <NodeStats kpis={dashboard.kpis} />
+        <div className="dashboard-grid">
+          <section className="panel fleet-map-panel dashboard-map-panel">
+            <div className="fleet-panel-head"><h3>India Live Vehicle Network</h3><div className="fleet-panel-actions"><select value={dashVehicleFilter} onChange={(e) => setDashVehicleFilter(e.target.value)}><option value="all">All Vehicles</option><option value="in_transit">In Transit</option><option value="idle">Idle</option><option value="stopped">Stopped</option></select><select value={dashRiskFilter} onChange={(e) => setDashRiskFilter(e.target.value)}><option value="all">All Risk</option><option value="safe">Safe</option><option value="medium">Medium</option><option value="high">High</option></select></div></div>
+            <LiveMap mapData={{ ...(mapData || {}), vehicles: dashboardVehicles }} warehouses={warehouses} />
+          </section>
+          <AlertFeed alerts={dashboard.alerts} />
+        </div>
+        <section className="dashboard-bottom-cards">
+          {dashboardCards.map(([label, value, type]) => <article key={label} className={`panel bottom-card ${type}`}><p>{label}</p><h3>{value}</h3></article>)}
+        </section>
+      </>}
       {!loading && view === "fleet" && <section className="fleet-page">
         <div className="fleet-subtitle">Monitor and manage your fleet in real-time</div>
         <section className="panel fleet-form-panel"><h3>Add Fleet Vehicle</h3><form onSubmit={addVehicle} className="form-grid"><input placeholder="e.g. MH01 AB 1234" value={vhForm.vehicle_id} onChange={(e) => setVhForm({ ...vhForm, vehicle_id: e.target.value })} required /><input placeholder="Select driver" value={vhForm.driver} onChange={(e) => setVhForm({ ...vhForm, driver: e.target.value })} required /><input placeholder="Enter city (optional)" value={vhForm.city} onChange={(e) => setVhForm({ ...vhForm, city: e.target.value })} /><select value={vhForm.from_warehouse} onChange={(e) => setVhForm({ ...vhForm, from_warehouse: e.target.value })} required><option value="">From Warehouse</option>{warehouses.map((w) => <option key={`from-${w.name}`} value={w.name}>{w.name}</option>)}</select><select value={vhForm.to_warehouse} onChange={(e) => setVhForm({ ...vhForm, to_warehouse: e.target.value })} required><option value="">To Warehouse</option>{warehouses.map((w) => <option key={`to-${w.name}`} value={w.name}>{w.name}</option>)}</select><input type="number" placeholder="Speed (km/h)" value={vhForm.speed_kmh} onChange={(e) => setVhForm({ ...vhForm, speed_kmh: e.target.value })} required /><button type="submit" disabled={warehouses.length === 0}>+ Add Vehicle</button></form>{warehouses.length === 0 && <div className="empty-state">Add warehouses first to enable route dropdowns for fleet.</div>}</section>
