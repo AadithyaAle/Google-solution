@@ -43,3 +43,40 @@ class SupplyChainRouter:
         except Exception as e:
             print(f"Unexpected Routing Error: {e}")
             return None
+
+    def initialize_network(self):
+        """Initializes a realistic backbone network for the supply chain."""
+        # Nodes: Hubs and Cities
+        nodes = [
+            "Mumbai_Hub", "Delhi_Hub", "Bangalore_Hub", "Chennai_Hub", 
+            "Kolkata_Hub", "Pune_Factory", "Ahmedabad_Warehouse", "Jaipur_Edge"
+        ]
+        
+        # Edges with default weights (representing distance/time)
+        edges = [
+            ("Mumbai_Hub", "Pune_Factory", 5.0),
+            ("Mumbai_Hub", "Ahmedabad_Warehouse", 15.0),
+            ("Delhi_Hub", "Jaipur_Edge", 8.0),
+            ("Delhi_Hub", "Ahmedabad_Warehouse", 25.0),
+            ("Bangalore_Hub", "Chennai_Hub", 10.0),
+            ("Mumbai_Hub", "Bangalore_Hub", 30.0),
+            ("Delhi_Hub", "Kolkata_Hub", 40.0),
+            ("Kolkata_Hub", "Chennai_Hub", 45.0),
+            ("Pune_Factory", "Bangalore_Hub", 20.0),
+        ]
+        
+        for u, v, w in edges:
+            self.add_path(u, v, w)
+
+    def get_network_state(self):
+        """Returns the current state of the network for frontend visualization."""
+        nodes = [{"id": n} for n in self.graph.nodes()]
+        links = []
+        for u, v, d in self.graph.edges(data=True):
+            links.append({
+                "source": u,
+                "target": v,
+                "weight": d['weight'],
+                "status": "CRITICAL" if d['weight'] > 50 else ("WARNING" if d['weight'] > 20 else "NOMINAL")
+            })
+        return {"nodes": nodes, "links": links}

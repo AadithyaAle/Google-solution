@@ -21,21 +21,14 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    distance_km = R * c
-    return distance_km
+    return R * c
 
-def check_geofence(truck_lat: float, truck_lon: float, destination_name: str) -> dict:
+def check_geofence(truck_lat: float, truck_lon: float, destination_name: str, warehouses: dict[str, dict[str, float]]) -> dict:
     """
     Checks if a truck has breached the 2km geo-fence of its destination.
-    (Mocking the database with a static dictionary for now).
+    Dynamically fetches warehouse coordinates from the active network configuration.
     """
-    # Hardcoded warehouse coordinates (We will move this to a DB later)
-    WAREHOUSES = {
-        "Factory_Mumbai": {"lat": 19.0760, "lng": 72.8777},
-        "Hub_Pune": {"lat": 18.5204, "lng": 73.8567}
-    }
-
-    dest_coords = WAREHOUSES.get(destination_name)
+    dest_coords = warehouses.get(destination_name)
     if not dest_coords:
         return {"status": "UNKNOWN_DESTINATION"}
 
@@ -49,7 +42,7 @@ def check_geofence(truck_lat: float, truck_lon: float, destination_name: str) ->
         return {
             "status": "BREACHED",
             "distance_km": round(distance, 2),
-            "message": f"Truck has entered the {destination_name} perimeter."
+            "message": f"Vehicle has entered the {destination_name} perimeter."
         }
     
     return {
