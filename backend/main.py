@@ -13,6 +13,7 @@ from pathlib import Path
 import asyncio
 import json
 import math
+from schemas import OptimizeRouteRequest  # adjust filename as needed
 
 # Team Arohan Database Imports
 from database import engine, get_db
@@ -61,6 +62,10 @@ class VehicleCreate(BaseModel):
     warehouse: str
     from_warehouse: str | None = None
     to_warehouse: str | None = None
+
+class OptimizeRouteRequest(BaseModel):
+    start_node: str
+    end_node: str
 
 # --- WEBSOCKET MANAGER ---
 class ConnectionManager:
