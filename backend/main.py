@@ -19,7 +19,7 @@ from database import engine, get_db
 import models
 
 # Team Arohan Custom Services
-from ai_core.gemini_agent import evaluate_transit_risk
+from ai_core.ai_agent import evaluate_transit_risk
 from ai_core.routing import SupplyChainRouter
 
 app = FastAPI(title="GATI Control Tower API")
