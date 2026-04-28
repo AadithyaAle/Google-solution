@@ -10,18 +10,44 @@ const INDIA_BOUNDS = [
 
 const riskColor = { safe: "#22c55e", medium: "#f59e0b", high: "#ef4444" };
 
-function markerIcon(color) {
+function warehouseIcon() {
   return L.divIcon({
-    className: "fleet-pin-wrap",
-    html: `<span class="fleet-pin" style="--pin:${color}"></span>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    className: "warehouse-stop-wrap",
+    html: '<span class="warehouse-stop"></span>',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+function vehicleNodeIcon(color) {
+  return L.divIcon({
+    className: "vehicle-node-wrap",
+    html: `<span class="vehicle-node" style="--vcolor:${color}"></span>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   });
 }
 
 export default function LiveMap({ mapData, warehouses = [] }) {
   const vehicles = mapData?.vehicles || [];
   const warehouseByName = Object.fromEntries(warehouses.map((w) => [w.name, w]));
+  const statusRouteColor = {
+    in_transit: "#22c55e",
+    delayed: "#f59e0b",
+    stopped: "#ef4444",
+    idle: "#38bdf8",
+  };
+
+  const curvedRoute = (from, to) => {
+    const midLat = (from.lat + to.lat) / 2;
+    const midLng = (from.lng + to.lng) / 2;
+    const bend = Math.max(0.8, Math.min(2.2, Math.abs(to.lng - from.lng) * 0.25));
+    return [
+      [from.lat, from.lng],
+      [midLat + bend * (from.lat > to.lat ? 1 : -1), midLng],
+      [to.lat, to.lng],
+    ];
+  };
 
   return (
     <section className="panel map-panel">
@@ -29,17 +55,8 @@ export default function LiveMap({ mapData, warehouses = [] }) {
       <div className="india-map">
         <MapContainer center={INDIA_CENTER} zoom={5} minZoom={4} maxZoom={10} maxBounds={INDIA_BOUNDS} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap &copy; CARTO' />
-          {vehicles.map((v) => (
-            <Marker key={v.id} position={[v.lat, v.lng]} icon={markerIcon(riskColor[v.risk] || "#38bdf8")}>
-              <Popup>
-                <strong>{v.id}</strong>
-                <br />
-                {v.city} | {v.status} | {v.speed_kmh || 0} km/h
-              </Popup>
-            </Marker>
-          ))}
           {warehouses.map((w) => (
-            <Marker key={`wh-${w.name}`} position={[w.lat, w.lng]} icon={markerIcon("#22d3ee")}>
+            <Marker key={`wh-stop-${w.name}`} position={[w.lat, w.lng]} icon={warehouseIcon()}>
               <Popup>
                 <strong>{w.name}</strong>
                 <br />
@@ -51,7 +68,22 @@ export default function LiveMap({ mapData, warehouses = [] }) {
             const from = warehouseByName[v.from_warehouse];
             const to = warehouseByName[v.to_warehouse || v.warehouse];
             if (!from || !to) return null;
-            return <Polyline key={`route-${v.id}`} positions={[[from.lat, from.lng], [to.lat, to.lng]]} pathOptions={{ color: riskColor[v.risk] || "#38bdf8", weight: 3, dashArray: "8 8" }} />;
+            const color = statusRouteColor[v.status] || riskColor[v.risk] || "#38bdf8";
+            const mid = { lat: (from.lat + to.lat) / 2, lng: (from.lng + to.lng) / 2 };
+            return [
+              <Polyline
+                key={`route-${v.id}`}
+                positions={curvedRoute(from, to)}
+                pathOptions={{ color, weight: 3.5, dashArray: "7 8", lineCap: "round", opacity: 0.95 }}
+              />,
+              <Marker key={`veh-${v.id}`} position={[mid.lat, mid.lng]} icon={vehicleNodeIcon(color)}>
+                <Popup>
+                  <strong>{v.id}</strong>
+                  <br />
+                  {v.from_warehouse} → {v.to_warehouse || v.warehouse}
+                </Popup>
+              </Marker>,
+            ];
           })}
         </MapContainer>
       </div>

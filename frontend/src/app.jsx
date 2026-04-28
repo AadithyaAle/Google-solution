@@ -23,6 +23,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [flash, setFlash] = useState("");
+  const [flashScope, setFlashScope] = useState("");
   const [fleetQuery, setFleetQuery] = useState("");
   const [warehouseQuery, setWarehouseQuery] = useState("");
   const [fleetStatusFilter, setFleetStatusFilter] = useState("all");
@@ -98,6 +99,15 @@ export default function App() {
     return () => ws && ws.close();
   }, [role]);
 
+  useEffect(() => {
+    if (!flash) return;
+    const id = setTimeout(() => {
+      setFlash("");
+      setFlashScope("");
+    }, 2500);
+    return () => clearTimeout(id);
+  }, [flash]);
+
   const addWarehouse = async (e) => {
     e.preventDefault();
     setFlash("");
@@ -111,6 +121,7 @@ export default function App() {
       await api.addWarehouse({ ...whForm, lat, lng });
       setWhForm({ name: "", city: "", lat: "", lng: "" });
       setFlash("Warehouse added successfully.");
+      setFlashScope("warehouses");
       await loadAll();
     } catch (err) {
       setError(err.message || "Failed to add warehouse.");
@@ -135,6 +146,7 @@ export default function App() {
       await api.addVehicle({ ...vhForm, warehouse: vhForm.to_warehouse, city: vhForm.city || to.city, lat: (from.lat + to.lat) / 2, lng: (from.lng + to.lng) / 2, from_warehouse: from.name, to_warehouse: to.name, speed_kmh });
       setVhForm({ vehicle_id: "", driver: "", vehicle_type: "truck", status: "in_transit", risk: "safe", speed_kmh: 0, city: "", from_warehouse: "", to_warehouse: "" });
       setFlash("Vehicle added successfully.");
+      setFlashScope("fleet");
       await loadAll();
     } catch (err) {
       setError(err.message || "Failed to add vehicle.");
@@ -147,7 +159,7 @@ export default function App() {
       <header className="topbar"><h2>{view === "dashboard" ? "Control Tower" : view === "fleet" ? "Fleet Operations" : "Warehouse Operations"}</h2><span className="live-dot">LIVE</span></header>
       {loading && <section className="panel">{t.loading}</section>}
       {error && <section className="panel error">{error} <button onClick={loadAll}>{t.retry}</button></section>}
-      {flash && <section className="panel" style={{ borderColor: "#2c7a64" }}>{flash}</section>}
+      {flash && flashScope === view && <section className="panel" style={{ borderColor: "#2c7a64" }}>{flash}</section>}
       {!loading && view === "dashboard" && <>
         <div className="fleet-subtitle">Real-time overview of your operations</div>
         <NodeStats kpis={dashboard.kpis} />
