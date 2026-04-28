@@ -30,6 +30,7 @@ jobs:
         # We inject a fake API key here so the GitHub server doesn't crash 
         # when gemini_agent.py looks for a key in the .env file!
         GEMINI_API_KEY: "dummy_key_for_github_actions"
+        PYTHONPATH: "."
       run: |
         cd backend
-        pytest
+        python -m pytest
