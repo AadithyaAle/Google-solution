@@ -1,0 +1,12 @@
+{
+  "fleet": [],
+  "warehouses": [
+    {
+      "name": "Abdulas",
+      "city": "bangalore",
+      "lat": 12.9629,
+      "lng": 77.5775,
+      "image_url": null
+    }
+  ]
+}
