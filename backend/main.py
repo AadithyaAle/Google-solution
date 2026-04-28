@@ -1,155 +1,150 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from ai_core.ai_agent import evaluate_transit_risk, neural_copilot_chat
-from ai_core.routing import SupplyChainRouter
-from services.geo_fencing import check_geofence
+from pydantic import BaseModel
+from typing import Literal
+from pathlib import Path
 import asyncio
-import time
+import json
 
-app = FastAPI(title="JKY AI - Command Center")
+from backend.services.geofencing import check_geofence
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="GATI Control Tower API")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# Global State
-router = SupplyChainRouter()
-router.initialize_network()
-vehicles_db: dict = {}
-recent_risk_scores: list = []
+DATA_FILE = Path(__file__).parent / "data" / "network.json"
 
-# --- WEBSOCKET ---
-class ConnectionManager:
-    def __init__(self): self.active_connections = []
-    async def connect(self, ws): await ws.accept(); self.active_connections.append(ws)
-    def disconnect(self, ws): 
-        if ws in self.active_connections: self.active_connections.remove(ws)
-    async def broadcast(self, msg):
-        for c in self.active_connections:
-            try: await c.send_json(msg)
-            except: self.active_connections.remove(c)
-
-manager = ConnectionManager()
-
-# --- MODELS ---
 class TelemetryPayload(BaseModel):
     shipment_id: str
     current_location: str
     next_destination: str
     weather_condition: str
     vibration_level: float
-<<<<<<< HEAD
-    temperature: float
-    gps_coordinates: dict
-=======
     latitude: float
     longitude: float
->>>>>>> 64b4183 (added new folders)
 
-class CopilotQuery(BaseModel):
-    query: str
-    context: dict = {}
+class WarehouseCreate(BaseModel):
+    name: str
+    city: str
+    lat: float
+    lng: float
 
-# --- ENDPOINTS ---
+class VehicleCreate(BaseModel):
+    vehicle_id: str
+    driver: str
+    vehicle_type: str
+    status: str
+    risk: str
+    speed_kmh: int
+    lat: float
+    lng: float
+    city: str
+    warehouse: str
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for c in list(self.active_connections):
+            try:
+                await c.send_json(message)
+            except Exception:
+                self.disconnect(c)
+
+manager = ConnectionManager()
+state = {"config": {}, "fleet": []}
+
+
+def load_config():
+    with DATA_FILE.open("r", encoding="utf-8") as f:
+        state["config"] = json.load(f)
+
+
+def build_alerts():
+    fleet = state["fleet"]
+    high_risk = sum(1 for f in fleet if f["risk"] == "high")
+    in_transit = sum(1 for f in fleet if f["status"] == "in_transit")
+    return [
+        {"type": "weather", "severity": "medium" if in_transit < 40 else "high", "message": "Live monsoon and storm risk updated.", "count": in_transit},
+        {"type": "traffic", "severity": "high" if high_risk > 20 else "medium", "message": "Live congestion estimate updated.", "count": high_risk},
+    ]
+
+
+@app.on_event("startup")
+async def startup_event():
+    load_config()
+    state["config"]["warehouses"] = []
+    state["fleet"] = []
+
+
+@app.get("/api/dashboard")
+async def dashboard(role: Literal["admin", "warehouse", "truck"] = "admin"):
+    fleet = state["fleet"]
+    return {"role": role, "kpis": {"total_vehicles": len(fleet), "moving": sum(1 for f in fleet if f["status"] == "in_transit"), "warehouses": len(state["config"].get("warehouses", [])), "high_risk": sum(1 for f in fleet if f["risk"] == "high")}, "alerts": build_alerts()}
+
+
+@app.get("/api/fleet")
+async def fleet(status: str | None = None, risk: str | None = None, warehouse: str | None = None):
+    rows = state["fleet"]
+    if status:
+        rows = [f for f in rows if f["status"] == status]
+    if risk:
+        rows = [f for f in rows if f["risk"] == risk]
+    if warehouse:
+        rows = [f for f in rows if f["warehouse"] == warehouse]
+    return {"items": rows, "count": len(rows)}
+
+
+@app.post("/api/fleet")
+async def add_vehicle(payload: VehicleCreate):
+    if any(v["vehicle_id"] == payload.vehicle_id for v in state["fleet"]):
+        raise HTTPException(status_code=409, detail="vehicle_id already exists")
+    state["fleet"].append(payload.model_dump())
+    asyncio.create_task(manager.broadcast({"type": "LIVE_STATE_UPDATED"}))
+    return {"status": "created", "item": payload.model_dump()}
+
+
+@app.get("/api/warehouses")
+async def warehouses():
+    return {"items": state["config"].get("warehouses", [])}
+
+
+@app.post("/api/warehouses")
+async def add_warehouse(payload: WarehouseCreate):
+    items = state["config"].setdefault("warehouses", [])
+    if any(w["name"] == payload.name for w in items):
+        raise HTTPException(status_code=409, detail="warehouse name already exists")
+    items.append(payload.model_dump())
+    asyncio.create_task(manager.broadcast({"type": "LIVE_STATE_UPDATED"}))
+    return {"status": "created", "item": payload.model_dump()}
+
+
+@app.get("/api/map/india")
+async def india_map():
+    return {"center": state["config"].get("map", {}).get("center", {"lat": 22.9734, "lng": 78.6569, "zoom": 5}), "vehicles": [{"id": f["vehicle_id"], "lat": f["lat"], "lng": f["lng"], "status": f["status"], "risk": f["risk"], "city": f["city"]} for f in state["fleet"]]}
+
+
+@app.post("/api/telemetry")
+async def process_telemetry(data: TelemetryPayload):
+    warehouse_coords = {w["name"]: {"lat": w["lat"], "lng": w["lng"]} for w in state["config"].get("warehouses", [])}
+    fence_status = check_geofence(data.latitude, data.longitude, data.next_destination, warehouse_coords)
+    asyncio.create_task(manager.broadcast({"type": "TELEMETRY", "shipment": data.shipment_id, "location": data.current_location, "geofence": fence_status}))
+    return {"status": "Telemetry processed", "geofence": fence_status}
+
+
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
-        while True: await websocket.receive_text()
-    except WebSocketDisconnect: manager.disconnect(websocket)
-
-@app.get("/api/vehicles")
-async def get_vehicles(): return {"vehicles": list(vehicles_db.values())}
-
-@app.post("/api/vehicles")
-async def add_vehicle(v: dict): 
-    vehicles_db[v["id"]] = v
-    return {"status": "ok"}
-
-@app.delete("/api/vehicles/{vid}")
-async def del_vehicle(vid: str):
-    if vid in vehicles_db: del vehicles_db[vid]
-    return {"status": "ok"}
-
-@app.post("/api/telemetry")
-async def process_telemetry(data: TelemetryPayload):
-<<<<<<< HEAD
-    # Enhanced AI analysis including Health Index
-    analysis = evaluate_transit_risk(data.model_dump())
-=======
-    """Ingests mock data from the simulator, checks Geo-Fences, and asks AI to evaluate risk."""
-
-    # --- 1. GEO-FENCING CHECK ---
-    fence_status = check_geofence(data.latitude, data.longitude, data.next_destination)
-    
-    if fence_status["status"] == "BREACHED":
-        # Broadcast an arrival alert to the Warehouse Manager instantly
-        arrival_payload = {
-            "type": "GEOFENCE_ALERT",
-            "shipment": data.shipment_id,
-            "destination": data.next_destination,
-            "message": fence_status["message"]
-        }
-        asyncio.create_task(manager.broadcast_alert(arrival_payload))
-        
-        # If it arrived safely, we don't need to ask the AI for a route risk anymore!
-        return {"status": "Arrived at destination", "geofence": fence_status}
->>>>>>> 64b4183 (added new folders)
-    
-    recent_risk_scores.append(analysis["risk_score"])
-    if len(recent_risk_scores) > 50: recent_risk_scores.pop(0)
-
-<<<<<<< HEAD
-    # Broadcast enriched data
-    update = {
-        "type": "TELEMETRY_UPDATE",
-        "shipment": data.shipment_id,
-        "location": data.current_location,
-        "gps": data.gps_coordinates,
-        "ai_analysis": analysis,
-        "telemetry": {
-            "vibration": data.vibration_level,
-            "temperature": data.temperature,
-            "weather": data.weather_condition,
-        },
-        "timestamp": time.time()
-    }
-    asyncio.create_task(manager.broadcast(update))
-    return {"status": "ok", "ai": analysis}
-=======
-    return {"status": "Telemetry processed", "ai_response": ai_analysis, "geofence": fence_status}
->>>>>>> 64b4183 (added new folders)
-
-@app.post("/api/copilot")
-async def copilot_chat(q: CopilotQuery):
-    # Give the AI context of the whole system
-    full_state = {
-        "vehicles": list(vehicles_db.values()),
-        "risk_trends": recent_risk_scores,
-        "network": router.get_network_state()
-    }
-    response = neural_copilot_chat(q.query, full_state)
-    return response
-
-@app.get("/api/stats")
-async def get_stats():
-    net = router.get_network_state()
-    avg_risk = sum(recent_risk_scores)/len(recent_risk_scores) if recent_risk_scores else 0
-    return {
-        "node_count": len(net["nodes"]),
-        "link_count": len(net["links"]),
-        "avg_risk": round(avg_risk, 2),
-        "fleet_size": len(vehicles_db)
-    }
-
-@app.get("/api/network-status")
-async def get_net(): return router.get_network_state()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)

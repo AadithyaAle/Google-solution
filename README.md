@@ -1,78 +1,52 @@
-<<<<<<< HEAD
-# 🌍 Supply Chain Spine - B2B Control Tower
+# GATI Control Tower
 
-Welcome to the team! This is a real-time, AI-powered supply chain monitoring system built for the Google Solution Challenge. 
+Real-time logistics control tower for fleet and warehouse operations.
 
----
+## Run Locally
 
-## 🚀 Quick Start (Onboarding)
+### 1. Backend (Terminal 1)
 
-Follow these steps exactly to get the project running on your local machine:
-
-### 1. Clone the Repository
 ```bash
-git clone [https://github.com/AadithyaAle/Google-solution.git](https://github.com/AadithyaAle/Google-solution.git)
-cd Google-solution
+cd /home/kartikeyayadav/Desktop/Google-solution
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. Backend Setup (Python)
-1. Navigate to the backend: `cd backend`
-2. Create a virtual environment: `python3 -m venv venv`
-3. Activate it: `source venv/bin/activate`
-4. Install dependencies: `pip install -r requirements.txt`
-5. **Setup Environment Variables:**
-   * Copy the template: `cp .env.example .env`
-   * Open `.env` and paste your personal **Gemini API Key**.
+Backend API will be available at:
+- `http://localhost:8000`
+- Swagger docs: `http://localhost:8000/docs`
 
-### 3. Frontend Setup (React)
-1. Navigate to the frontend: `cd ../frontend`
-2. Install dependencies: `npm install`
-3. **Setup Environment Variables:**
-   * Create a file named `.env`.
-   * Add: `VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key_here`
-4. Start the dashboard: `npm run dev`
+### 2. Frontend (Terminal 2)
 
----
-
-## 🛡️ Contribution Workflow (IMPORTANT)
-
-To keep our `main` branch stable and our CI/CD green, follow this workflow for **every** feature:
-
-### 1. Create a Feature Branch
-Never code directly on `main`. Create a descriptive branch:
 ```bash
-git checkout -b feat/add-map-markers
+cd /home/kartikeyayadav/Desktop/Google-solution
+npm run frontend:install
+npm run dev
 ```
 
-### 2. Test Locally
-Before pushing, run the backend tests to ensure you didn't break the routing logic:
+Frontend will run at:
+- `http://localhost:5173`
+
+## Root Scripts
+
+From project root:
+
 ```bash
-cd backend
-pytest
+npm run dev       # starts frontend dev server
+npm run build     # builds frontend production bundle
+npm run preview   # preview built frontend
 ```
 
-### 3. Push and Open a Pull Request (PR)
+## Notes
+
+- Start backend first, then frontend.
+- If port `8000` is busy:
+
 ```bash
-git add .
-git commit -m "feat: added interactive markers to the map"
-git push origin feat/add-map-markers
+lsof -i :8000
+kill -9 <PID>
 ```
-* Go to GitHub and open a **Pull Request**.
-* **Wait for the Checks:** Our GitHub Actions will automatically run. If you see a **Red X**, check the logs, fix the code, and push again.
-* Once you see the **Green Checkmark**, you are clear to merge!
 
----
-
-## 🛠️ Tech Stack
-* **Backend:** FastAPI, NetworkX (Graph Theory), Google Gemini AI.
-* **Frontend:** React, Tailwind CSS, Google Maps API.
-* **CI/CD:** GitHub Actions (Automated Pytest).
-
----
-
-> **Note:** This is a living document. We will update the final project documentation once all features are integrated.
-
-
-=======
-Testing CI/CD Pipeline
->>>>>>> ccce1643588f608231644015edf280160e7b3a8b
+- If port `5173` is busy, Vite will suggest another port automatically.
