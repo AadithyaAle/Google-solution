@@ -39,6 +39,8 @@ class VehicleCreate(BaseModel):
     lng: float
     city: str
     warehouse: str
+    from_warehouse: str | None = None
+    to_warehouse: str | None = None
 
 class ConnectionManager:
     def __init__(self):
@@ -129,7 +131,7 @@ async def add_warehouse(payload: WarehouseCreate):
 
 @app.get("/api/map/india")
 async def india_map():
-    return {"center": state["config"].get("map", {}).get("center", {"lat": 22.9734, "lng": 78.6569, "zoom": 5}), "vehicles": [{"id": f["vehicle_id"], "lat": f["lat"], "lng": f["lng"], "status": f["status"], "risk": f["risk"], "city": f["city"]} for f in state["fleet"]]}
+    return {"center": state["config"].get("map", {}).get("center", {"lat": 22.9734, "lng": 78.6569, "zoom": 5}), "vehicles": [{"id": f["vehicle_id"], "lat": f["lat"], "lng": f["lng"], "status": f["status"], "risk": f["risk"], "city": f["city"], "from_warehouse": f.get("from_warehouse"), "to_warehouse": f.get("to_warehouse"), "speed_kmh": f.get("speed_kmh", 0)} for f in state["fleet"]]}
 
 
 @app.post("/api/telemetry")
