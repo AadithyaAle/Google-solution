@@ -1,39 +1,59 @@
 import React from "react";
-const INDIA_BOUNDS = {
-  minLat: 6.5,
-  maxLat: 37.5,
-  minLng: 68.0,
-  maxLng: 97.5,
-};
+import L from "leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 
-function toPercent(lat, lng) {
-  const x = ((lng - INDIA_BOUNDS.minLng) / (INDIA_BOUNDS.maxLng - INDIA_BOUNDS.minLng)) * 100;
-  const y = 100 - ((lat - INDIA_BOUNDS.minLat) / (INDIA_BOUNDS.maxLat - INDIA_BOUNDS.minLat)) * 100;
-  return { x: Math.min(98, Math.max(2, x)), y: Math.min(98, Math.max(2, y)) };
+const INDIA_CENTER = [22.9734, 78.6569];
+const INDIA_BOUNDS = [
+  [6.0, 67.0],
+  [37.6, 98.8],
+];
+
+const riskColor = { safe: "#22c55e", medium: "#f59e0b", high: "#ef4444" };
+
+function markerIcon(color) {
+  return L.divIcon({
+    className: "fleet-pin-wrap",
+    html: `<span class="fleet-pin" style="--pin:${color}"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
 }
 
-const riskColor = { safe: "#22c55e", medium: "#eab308", high: "#ef4444" };
-
-export default function LiveMap({ mapData }) {
+export default function LiveMap({ mapData, warehouses = [] }) {
   const vehicles = mapData?.vehicles || [];
+  const warehouseByName = Object.fromEntries(warehouses.map((w) => [w.name, w]));
 
   return (
     <section className="panel map-panel">
       <h3>India Live Vehicle Network</h3>
       <div className="india-map">
-        <div className="india-grid" />
-        <div className="india-shape" />
-        {vehicles.map((v) => {
-          const p = toPercent(v.lat, v.lng);
-          return (
-            <span
-              key={v.id}
-              className="vehicle-dot"
-              title={`${v.id} | ${v.city} | ${v.status} | ${v.risk}`}
-              style={{ left: `${p.x}%`, top: `${p.y}%`, background: riskColor[v.risk] || "#38bdf8" }}
-            />
-          );
-        })}
+        <MapContainer center={INDIA_CENTER} zoom={5} minZoom={4} maxZoom={10} maxBounds={INDIA_BOUNDS} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap &copy; CARTO' />
+          {vehicles.map((v) => (
+            <Marker key={v.id} position={[v.lat, v.lng]} icon={markerIcon(riskColor[v.risk] || "#38bdf8")}>
+              <Popup>
+                <strong>{v.id}</strong>
+                <br />
+                {v.city} | {v.status} | {v.speed_kmh || 0} km/h
+              </Popup>
+            </Marker>
+          ))}
+          {warehouses.map((w) => (
+            <Marker key={`wh-${w.name}`} position={[w.lat, w.lng]} icon={markerIcon("#22d3ee")}>
+              <Popup>
+                <strong>{w.name}</strong>
+                <br />
+                {w.city}
+              </Popup>
+            </Marker>
+          ))}
+          {vehicles.map((v) => {
+            const from = warehouseByName[v.from_warehouse];
+            const to = warehouseByName[v.to_warehouse || v.warehouse];
+            if (!from || !to) return null;
+            return <Polyline key={`route-${v.id}`} positions={[[from.lat, from.lng], [to.lat, to.lng]]} pathOptions={{ color: riskColor[v.risk] || "#38bdf8", weight: 3, dashArray: "8 8" }} />;
+          })}
+        </MapContainer>
       </div>
     </section>
   );

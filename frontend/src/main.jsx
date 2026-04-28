@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./app.jsx";
+import "leaflet/dist/leaflet.css";
 import "./styles.css";
 
 class RootErrorBoundary extends React.Component {
