@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GATI Control Tower — System Showcase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #020510;
+      --surface: rgba(10,18,40,0.85);
+      --border: rgba(56,189,248,0.18);
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --accent3: #34d399;
+      --accent4: #fb923c;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --glow: 0 0 40px rgba(56,189,248,0.25);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ─── Canvas Hero ─── */
+    #hero {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #three-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 2rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(56,189,248,0.1);
+      border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 9999px;
+      padding: 0.35rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+    .badge::before { content: '●'; color: var(--accent3); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    h1 {
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 0%, #38bdf8 40%, #818cf8 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-pills {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pill {
+      padding: 0.5rem 1.2rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: default;
+    }
+    .pill:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .pill-blue  { color: var(--accent);  border-color: rgba(56,189,248,0.4);  background: rgba(56,189,248,0.08); }
+    .pill-purple{ color: var(--accent2); border-color: rgba(129,140,248,0.4); background: rgba(129,140,248,0.08);}
+    .pill-green { color: var(--accent3); border-color: rgba(52,211,153,0.4);  background: rgba(52,211,153,0.08); }
+    .pill-orange{ color: var(--accent4); border-color: rgba(251,146,60,0.4);  background: rgba(251,146,60,0.08); }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      animation: bounce 2s infinite;
+    }
+    .scroll-hint .arrow { font-size: 1.4rem; }
+    @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(8px)} }
+
+    /* ─── Section Layout ─── */
+    section {
+      padding: 6rem 2rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+    .section-label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .section-desc {
+      color: var(--muted);
+      max-width: 620px;
+      margin-bottom: 3.5rem;
+      font-size: 1.05rem;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 2rem;
+    }
+
+    /* ─── Glass Card ─── */
+    .glass {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      backdrop-filter: blur(20px);
+      transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    .glass:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--glow), 0 20px 60px rgba(0,0,0,0.5);
+      border-color: rgba(56,189,248,0.35);
+    }
+
+    /* ─── Architecture 3D Canvas ─── */
+    #arch-canvas-wrap {
+      width: 100%;
+      height: 520px;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+      background: radial-gradient(ellipse at center, rgba(10,25,60,0.9) 0%, rgba(2,5,16,0.98) 100%);
+      box-shadow: var(--glow);
+    }
+    #arch-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .canvas-label {
+      position: absolute;
+      top: 1rem;
+      left: 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    .canvas-hint {
+      position: absolute;
+      bottom: 1rem;
+      right: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    /* ─── Features Grid ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .feat-card {
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 0% 0%, rgba(56,189,248,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .feat-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid;
+    }
+    .feat-icon.blue   { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.3); }
+    .feat-icon.purple { background: rgba(129,140,248,0.1); border-color: rgba(129,140,248,0.3); }
+    .feat-icon.green  { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); }
+    .feat-icon.orange { background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.3); }
+    .feat-icon.pink   { background: rgba(244,114,182,0.1); border-color: rgba(244,114,182,0.3); }
+    .feat-icon.yellow { background: rgba(250,204,21,0.1); border-color: rgba(250,204,21,0.3); }
+    .feat-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feat-card p { color: var(--muted); font-size: 0.9rem; }
+
+    /* ─── Tech Stack ─── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    .tech-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+    .tech-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tech-item span { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+
+    /* ─── Charts Row ─── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) { .charts-row { grid-template-columns: 1fr; } }
+    .chart-card {
+      padding: 1.75rem;
+    }
+    .chart-card h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+    }
+    .chart-wrap { position: relative; height: 260px; }
+
+    /* ─── Network 3D ─── */
+    #net-canvas-wrap {
+      width: 100%;
+      height: 480px;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+      background: radial-gradient(ellipse at center, rgba(15,10,40,0.95) 0%, rgba(2,5,16,0.99) 100%);
+      box-shadow: 0 0 40px rgba(129,140,248,0.2);
+    }
+    #net-canvas { width: 100%; height: 100%; }
+
+    /* ─── KPI Strip ─── */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 4rem;
+    }
+    .kpi-card {
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .kpi-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ─── Data Flow ─── */
+    .flow-wrap {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+    }
+    .flow-node {
+      flex: 1;
+      min-width: 140px;
+      padding: 1.5rem 1rem;
+      border-radius: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 0.25rem;
+      color: var(--accent);
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .flow-node .flow-icon { font-size: 2rem; margin-bottom: 0.625rem; }
+    .flow-node h4 { font-size: 0.82rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .flow-node p  { font-size: 0.7rem; color: var(--muted); }
+
+    /* ─── API Endpoints ─── */
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+    }
+    .api-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .api-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(56,189,248,0.07);
+      vertical-align: middle;
+    }
+    .api-table tr:hover td { background: rgba(56,189,248,0.04); }
+    .method {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .get    { background: rgba(52,211,153,0.15); color: var(--accent3); border: 1px solid rgba(52,211,153,0.3); }
+    .post   { background: rgba(56,189,248,0.15); color: var(--accent);  border: 1px solid rgba(56,189,248,0.3); }
+    .ws     { background: rgba(129,140,248,0.15); color: var(--accent2); border: 1px solid rgba(129,140,248,0.3); }
+    .endpoint { font-family: 'JetBrains Mono', monospace; color: var(--text); font-size: 0.82rem; }
+
+    /* ─── Setup Steps ─── */
+    .steps { display: flex; flex-direction: column; gap: 1rem; }
+    .step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      padding: 1.5rem;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+    .step-content h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .step-content p { font-size: 0.83rem; color: var(--muted); margin-bottom: 0.6rem; }
+    pre {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 0.75rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--accent3);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      border-top: 1px solid var(--border);
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════ HERO ══════════════════════════ -->
+<section id="hero">
+  <canvas id="three-canvas"></canvas>
+  <div class="hero-content">
+    <div class="badge">🛰️ &nbsp;Google Solution Challenge 2025</div>
+    <h1>GATI<br/>Control Tower</h1>
+    <p class="hero-sub">Real-time AI-powered logistics intelligence — fleet tracking, geofencing, predictive risk assessment & neural route optimization across India.</p>
+    <div class="hero-pills">
+      <span class="pill pill-blue">FastAPI + WebSocket</span>
+      <span class="pill pill-purple">GPT-4o Neural Engine</span>
+      <span class="pill pill-green">NetworkX Dijkstra</span>
+      <span class="pill pill-orange">React + TypeScript</span>
+      <span class="pill pill-blue">Live Telemetry</span>
+      <span class="pill pill-purple">Haversine Geofencing</span>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span class="arrow">↓</span>
+    <span>Scroll to explore</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ KPIs ══════════════════════════ -->
+<section>
+  <div class="kpi-strip">
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#38bdf8">8</div>
+      <div class="kpi-label">Supply Chain Hubs</div>
+    </div>
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#34d399">15</div>
+      <div class="kpi-label">Frontend Components</div>
+    </div>
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#818cf8">9</div>
+      <div class="kpi-label">REST + WS Endpoints</div>
+    </div>
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#fb923c">&lt;2km</div>
+      <div class="kpi-label">Geofence Precision</div>
+    </div>
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#f472b6">15%</div>
+      <div class="kpi-label">Predictive Failure Sim</div>
+    </div>
+    <div class="glass kpi-card">
+      <div class="kpi-value" style="color:#facc15">GPT-4o</div>
+      <div class="kpi-label">AI Risk Engine</div>
+    </div>
+  </div>
+
+  <!-- ─── 3D Architecture Diagram ─── -->
+  <p class="section-label">System Architecture</p>
+  <h2 class="section-title">3D Architecture Overview</h2>
+  <p class="section-desc">An interactive 3D visualization of the full GATI Control Tower system — from real-time telemetry ingestion through AI risk evaluation to frontend rendering.</p>
+
+  <div id="arch-canvas-wrap">
+    <span class="canvas-label">GATI // SYSTEM ARCHITECTURE</span>
+    <span class="canvas-hint">Auto-rotating · 3D</span>
+    <canvas id="arch-canvas"></canvas>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ FEATURES ══════════════════════════ -->
+<section>
+  <p class="section-label">Core Capabilities</p>
+  <h2 class="section-title">Everything You Need to<br/>Command a Supply Chain</h2>
+  <p class="section-desc">GATI integrates AI intelligence, live telemetry, and interactive maps into a single unified control surface.</p>
+
+  <div class="features-grid">
+    <div class="glass feat-card">
+      <div class="feat-icon blue">🗺️</div>
+      <h3>Live India Map</h3>
+      <p>Real-time vehicle positions plotted on an interactive India map. Color-coded risk status at a glance — green, amber, red.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon purple">🧠</div>
+      <h3>GPT-4o Neural Copilot</h3>
+      <p>Ask the AI copilot anything: fleet status, route optimization, predictive maintenance alerts. Falls back to a professional simulation engine when offline.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon green">🛣️</div>
+      <h3>Dijkstra Route Optimizer</h3>
+      <p>NetworkX-powered graph routing dynamically penalizes high-risk edges. Computes the safest path across 8 real Indian logistics hubs.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon orange">📡</div>
+      <h3>Haversine Geofencing</h3>
+      <p>Sub-2km precision warehouse perimeter detection. Triggers WebSocket broadcast the moment a vehicle breaches a destination fence.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon pink">⚡</div>
+      <h3>WebSocket Telemetry</h3>
+      <p>Persistent bidirectional WebSocket channel pushes live telemetry, geofence events and state updates to every connected dashboard in milliseconds.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon yellow">🔧</div>
+      <h3>Predictive Maintenance</h3>
+      <p>Simulated telemetry activates 15% failure-mode probability — high vibration (>12 G) and temperature (>42°C) trigger predictive maintenance alerts.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon blue">📊</div>
+      <h3>Risk Monitoring Dashboard</h3>
+      <p>Risk score, health index, and status (NOMINAL / WARNING / CRITICAL) updated live. Severity histograms and time-series trend overlays.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon purple">🏢</div>
+      <h3>Warehouse Management</h3>
+      <p>DALL·E 3-generated warehouse cards with glassmorphic design. Add/remove warehouses and see live vehicle-to-warehouse assignments update in real time.</p>
+    </div>
+    <div class="glass feat-card">
+      <div class="feat-icon green">🚛</div>
+      <h3>Fleet Cards</h3>
+      <p>Premium AI-generated vehicle imagery for every truck or van. Status badges (in_transit / idle), risk indicators, speed, and driver info — all in one card.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ NETWORK 3D ══════════════════════════ -->
+<section>
+  <p class="section-label">Supply Chain Graph</p>
+  <h2 class="section-title">India Logistics Network<br/>— Live 3D Graph</h2>
+  <p class="section-desc">Interactive force-directed 3D visualization of all 8 hub nodes and 9 weighted edges. Edge color encodes route status: NOMINAL → WARNING → CRITICAL.</p>
+
+  <div id="net-canvas-wrap">
+    <span class="canvas-label">GATI // SUPPLY CHAIN NETWORK</span>
+    <canvas id="net-canvas"></canvas>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ DATA FLOW ══════════════════════════ -->
+<section>
+  <p class="section-label">Data Pipeline</p>
+  <h2 class="section-title">End-to-End Data Flow</h2>
+  <p class="section-desc">From GPS sensor to AI decision to live dashboard in under 100ms.</p>
+  <div class="flow-wrap">
+    <div class="flow-node">
+      <div class="flow-icon">📡</div>
+      <h4>Simulator</h4>
+      <p>Generates telemetry with GPS drift, weather & failure modes</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon">🌐</div>
+      <h4>REST POST</h4>
+      <p>/api/telemetry receives and validates payload</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon">📍</div>
+      <h4>Geofencing</h4>
+      <p>Haversine check against all registered warehouses</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon">🧠</div>
+      <h4>AI Engine</h4>
+      <p>GPT-4o evaluates risk score & maintenance alert</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon">⚡</div>
+      <h4>WebSocket</h4>
+      <p>Broadcasts event to all connected dashboard clients</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon">🖥️</div>
+      <h4>UI Update</h4>
+      <p>React state updates map, risk panel & alerts instantly</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ CHARTS ══════════════════════════ -->
+<section>
+  <p class="section-label">Analytics</p>
+  <h2 class="section-title">Performance Metrics</h2>
+  <p class="section-desc">Simulated operational analytics demonstrating fleet risk distribution and hub throughput across the supply chain network.</p>
+
+  <div class="charts-row">
+    <div class="glass chart-card">
+      <h3>Fleet Risk Distribution</h3>
+      <div class="chart-wrap">
+        <canvas id="riskChart"></canvas>
+      </div>
+    </div>
+    <div class="glass chart-card">
+      <h3>Hub Throughput (vehicles/day)</h3>
+      <div class="chart-wrap">
+        <canvas id="hubChart"></canvas>
+      </div>
+    </div>
+    <div class="glass chart-card">
+      <h3>Weather Conditions Over Time</h3>
+      <div class="chart-wrap">
+        <canvas id="weatherChart"></canvas>
+      </div>
+    </div>
+    <div class="glass chart-card">
+      <h3>Route Weight Heatmap</h3>
+      <div class="chart-wrap">
+        <canvas id="routeChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ TECH STACK ══════════════════════════ -->
+<section>
+  <p class="section-label">Technology Stack</p>
+  <h2 class="section-title">Built With</h2>
+  <p class="section-desc">A modern, production-grade stack combining real-time Python services with a rich React/TypeScript frontend.</p>
+  <div class="tech-grid">
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(56,189,248,0.12);color:#38bdf8">Py</div>
+      <span>FastAPI</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(52,211,153,0.12);color:#34d399">UV</div>
+      <span>Uvicorn</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(129,140,248,0.12);color:#818cf8">NX</div>
+      <span>NetworkX</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(251,146,60,0.12);color:#fb923c">AI</div>
+      <span>OpenAI GPT-4o</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(244,114,182,0.12);color:#f472b6">Re</div>
+      <span>React 18</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(56,189,248,0.12);color:#38bdf8">TS</div>
+      <span>TypeScript</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(250,204,21,0.12);color:#facc15">Vt</div>
+      <span>Vite</span>
+    </div>
+    <div class="glass tech-item">
+      <div class="tech-logo" style="background:rgba(52,211,153,0.12);color:#34d399">WS</div>
+      <span>WebSocket</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ API REFERENCE ══════════════════════════ -->
+<section>
+  <p class="section-label">API Reference</p>
+  <h2 class="section-title">REST & WebSocket Endpoints</h2>
+  <p class="section-desc">All endpoints exposed by the FastAPI backend. Interactive Swagger UI available at <code style="color:var(--accent)">/docs</code>.</p>
+  <div class="glass" style="overflow:hidden">
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/dashboard</td><td>KPIs, alert feed (role-based)</td></tr>
+        <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/fleet</td><td>List vehicles with status/risk/warehouse filters</td></tr>
+        <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/fleet</td><td>Register a new vehicle</td></tr>
+        <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/warehouses</td><td>List all warehouses</td></tr>
+        <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/warehouses</td><td>Register a new warehouse</td></tr>
+        <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/map/india</td><td>Live vehicle positions for map rendering</td></tr>
+        <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/telemetry</td><td>Ingest telemetry + trigger geofence + broadcast</td></tr>
+        <tr><td><span class="method get">GET</span></td><td class="endpoint">/docs</td><td>Swagger interactive API docs</td></tr>
+        <tr><td><span class="method ws">WS</span></td><td class="endpoint">/ws/alerts</td><td>Persistent real-time alert & state broadcast</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════ SETUP ══════════════════════════ -->
+<section>
+  <p class="section-label">Quick Start</p>
+  <h2 class="section-title">Get Running in Minutes</h2>
+  <p class="section-desc">Clone, install, and launch — GATI is designed to be developer-friendly from day one.</p>
+  <div class="steps">
+    <div class="glass step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Clone & set up environment</h4>
+        <p>Create a virtual environment and install Python dependencies.</p>
+        <pre>git clone https://github.com/your-org/Google-solution
+cd Google-solution
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt</pre>
+      </div>
+    </div>
+    <div class="glass step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Configure environment variables</h4>
+        <p>Add your OpenAI key to enable the full GPT-4o Neural Engine. Without it, the professional simulation engine activates automatically.</p>
+        <pre>cp backend/.env.example backend/.env
+# Edit backend/.env → set OPENAI_API_KEY=sk-...</pre>
+      </div>
+    </div>
+    <div class="glass step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Start the backend API</h4>
+        <p>Launch the FastAPI server on port 8000.</p>
+        <pre>uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000</pre>
+      </div>
+    </div>
+    <div class="glass step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Start the frontend</h4>
+        <p>Install Node dependencies and launch the Vite dev server on port 5173.</p>
+        <pre>npm run frontend:install
+npm run dev</pre>
+      </div>
+    </div>
+    <div class="glass step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>(Optional) Run the telemetry simulator</h4>
+        <p>Populate the system with live simulated fleet data.</p>
+        <pre>python -m backend.simulation.simulator</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Built with ❤️ for the <span>Google Solution Challenge 2025</span> &nbsp;·&nbsp;
+  GATI Control Tower &nbsp;·&nbsp; FastAPI · React · GPT-4o · NetworkX
+</footer>
+
+<!-- ══════════════════════════ THREE.JS HERO ══════════════════════════ -->
+<script>
+(function(){
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 0, 38);
+
+  // Particles
+  const geo = new THREE.BufferGeometry();
+  const N = 1800;
+  const pos = new Float32Array(N * 3);
+  const col = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random()-0.5)*160;
+    pos[i*3+1] = (Math.random()-0.5)*120;
+    pos[i*3+2] = (Math.random()-0.5)*100;
+    const t = Math.random();
+    col[i*3]   = 0.2 + t*0.5;
+    col[i*3+1] = 0.4 + t*0.4;
+    col[i*3+2] = 0.9;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.22, vertexColors: true, transparent: true, opacity: 0.7 }));
+  scene.add(pts);
+
+  // Glow sphere
+  const sph = new THREE.Mesh(
+    new THREE.SphereGeometry(6, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.08 })
+  );
+  scene.add(sph);
+
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.003;
+    pts.rotation.y = t * 0.15;
+    pts.rotation.x = t * 0.08;
+    sph.rotation.y = t * 0.4;
+    sph.rotation.x = t * 0.2;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+})();
+</script>
+
+<!-- ══════════════════════════ ARCHITECTURE 3D ══════════════════════════ -->
+<script>
+(function(){
+  const canvas = document.getElementById('arch-canvas');
+  const wrap   = document.getElementById('arch-canvas-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(W, H);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
+  camera.position.set(14, 10, 22);
+  camera.lookAt(0, 0, 0);
+
+  const layers = [
+    { label: 'Simulator',   y: -6,  color: 0x38bdf8, icon: '📡' },
+    { label: 'FastAPI',     y: -2,  color: 0x34d399, icon: '⚡' },
+    { label: 'AI Core',     y:  2,  color: 0xfb923c, icon: '🧠' },
+    { label: 'WebSocket',   y:  6,  color: 0x818cf8, icon: '🔗' },
+    { label: 'React UI',    y: 10,  color: 0xf472b6, icon: '🖥️' },
+  ];
+
+  const boxes = [];
+  layers.forEach((l, i) => {
+    const geom = new THREE.BoxGeometry(8, 1.4, 3);
+    const mat  = new THREE.MeshPhongMaterial({
+      color: l.color,
+      transparent: true,
+      opacity: 0.25,
+      wireframe: false
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(0, l.y, 0);
+    scene.add(mesh);
+
+    // wireframe overlay
+    const wf = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
+      color: l.color, wireframe: true, transparent: true, opacity: 0.5
+    }));
+    wf.position.copy(mesh.position);
+    scene.add(wf);
+    boxes.push({ mesh, wf });
+
+    // connector line
+    if (i < layers.length - 1) {
+      const pts = [new THREE.Vector3(0, l.y + 0.7, 0), new THREE.Vector3(0, layers[i+1].y - 0.7, 0)];
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: l.color, transparent: true, opacity: 0.6 }));
+      scene.add(line);
+    }
+  });
+
+  // Ambient + directional light
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const dir = new THREE.DirectionalLight(0x38bdf8, 2);
+  dir.position.set(10, 20, 10);
+  scene.add(dir);
+
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.004;
+    const r = 28;
+    camera.position.x = Math.cos(t) * r * 0.5;
+    camera.position.z = Math.sin(t) * r * 0.6 + 14;
+    camera.position.y = 8 + Math.sin(t * 0.5) * 3;
+    camera.lookAt(0, 2, 0);
+
+    boxes.forEach((b, i) => {
+      const pulse = 0.24 + 0.06 * Math.sin(t * 2 + i);
+      b.mesh.material.opacity = pulse;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const nw = wrap.clientWidth, nh = wrap.clientHeight;
+    camera.aspect = nw/nh; camera.updateProjectionMatrix();
+    renderer.setSize(nw,nh);
+  });
+})();
+</script>
+
+<!-- ══════════════════════════ NETWORK 3D ══════════════════════════ -->
+<script>
+(function(){
+  const canvas = document.getElementById('net-canvas');
+  const wrap   = document.getElementById('net-canvas-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(W, H);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, W/H, 0.1, 500);
+  camera.position.set(0, 4, 30);
+
+  // Nodes
+  const NODES = {
+    Mumbai_Hub:          {x:-8,  y:-3,  z: 0},
+    Delhi_Hub:           {x: 2,  y: 8,  z: 1},
+    Bangalore_Hub:       {x:-5,  y:-9,  z: 2},
+    Chennai_Hub:         {x: 3,  y:-10, z:-1},
+    Kolkata_Hub:         {x: 11, y: 2,  z: 0},
+    Pune_Factory:        {x:-7,  y:-6,  z: 1},
+    Ahmedabad_Warehouse: {x:-10, y: 2,  z:-1},
+    Jaipur_Edge:         {x: 0,  y: 5,  z: 2},
+  };
+  const EDGES = [
+    ['Mumbai_Hub','Pune_Factory',5,'nominal'],
+    ['Mumbai_Hub','Ahmedabad_Warehouse',15,'nominal'],
+    ['Delhi_Hub','Jaipur_Edge',8,'nominal'],
+    ['Delhi_Hub','Ahmedabad_Warehouse',25,'warning'],
+    ['Bangalore_Hub','Chennai_Hub',10,'nominal'],
+    ['Mumbai_Hub','Bangalore_Hub',30,'warning'],
+    ['Delhi_Hub','Kolkata_Hub',40,'critical'],
+    ['Kolkata_Hub','Chennai_Hub',45,'critical'],
+    ['Pune_Factory','Bangalore_Hub',20,'warning'],
+  ];
+  const STATUS_COLOR = { nominal: 0x34d399, warning: 0xfb923c, critical: 0xef4444 };
+
+  // Add glow particles background
+  const bgGeo = new THREE.BufferGeometry();
+  const bgN = 600, bgPos = new Float32Array(bgN*3);
+  for(let i=0;i<bgN;i++){ bgPos[i*3]=(Math.random()-.5)*80; bgPos[i*3+1]=(Math.random()-.5)*60; bgPos[i*3+2]=(Math.random()-.5)*40; }
+  bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos,3));
+  scene.add(new THREE.Points(bgGeo, new THREE.PointsMaterial({size:0.15,color:0x818cf8,transparent:true,opacity:0.4})));
+
+  const nodeObjs = {};
+  Object.entries(NODES).forEach(([name, pos]) => {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 16, 16),
+      new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x1e6fa0, emissiveIntensity: 0.8 })
+    );
+    mesh.position.set(pos.x, pos.y, pos.z);
+    scene.add(mesh);
+    nodeObjs[name] = mesh;
+
+    // Ring
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.1, 0.04, 8, 32),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3 })
+    );
+    ring.position.copy(mesh.position);
+    ring.rotation.x = Math.PI / 2;
+    scene.add(ring);
+  });
+
+  EDGES.forEach(([a, b, weight, status]) => {
+    const pa = NODES[a], pb = NODES[b];
+    const pts = [new THREE.Vector3(pa.x,pa.y,pa.z), new THREE.Vector3(pb.x,pb.y,pb.z)];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+      color: STATUS_COLOR[status] || 0x38bdf8,
+      transparent: true,
+      opacity: 0.7,
+      linewidth: 2
+    }));
+    scene.add(line);
+  });
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const pt = new THREE.PointLight(0x38bdf8, 2, 60);
+  pt.position.set(0,10,10);
+  scene.add(pt);
+
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t+=0.004;
+    camera.position.x = Math.cos(t)*22;
+    camera.position.z = Math.sin(t)*22;
+    camera.position.y = 6 + Math.sin(t*0.5)*4;
+    camera.lookAt(0,0,0);
+
+    Object.values(nodeObjs).forEach((m,i) => {
+      m.scale.setScalar(0.9 + 0.15*Math.sin(t*2+i));
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const nw=wrap.clientWidth, nh=wrap.clientHeight;
+    camera.aspect=nw/nh; camera.updateProjectionMatrix();
+    renderer.setSize(nw,nh);
+  });
+})();
+</script>
+
+<!-- ══════════════════════════ CHARTS ══════════════════════════ -->
+<script>
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = 'rgba(56,189,248,0.1)';
+const font = { family: 'Inter, sans-serif', size: 11 };
+
+// Risk donut
+new Chart(document.getElementById('riskChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['NOMINAL','WARNING','CRITICAL'],
+    datasets:[{
+      data:[62,27,11],
+      backgroundColor:['rgba(52,211,153,0.8)','rgba(251,146,60,0.8)','rgba(239,68,68,0.8)'],
+      borderColor:['#34d399','#fb923c','#ef4444'],
+      borderWidth:2,
+      hoverOffset:10
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false, cutout:'65%',
+    plugins:{ legend:{ position:'bottom', labels:{ font, padding:16, usePointStyle:true }}}
+  }
+});
+
+// Hub bar
+new Chart(document.getElementById('hubChart'), {
+  type: 'bar',
+  data:{
+    labels:['Mumbai','Delhi','Bangalore','Chennai','Kolkata','Pune','Ahmedabad','Jaipur'],
+    datasets:[{
+      label:'Vehicles/day',
+      data:[240,310,180,160,120,200,145,90],
+      backgroundColor:'rgba(56,189,248,0.6)',
+      borderColor:'#38bdf8',
+      borderWidth:1.5,
+      borderRadius:6
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:false }},
+    scales:{
+      x:{ grid:{ color:'rgba(56,189,248,0.07)' }, ticks:{ font }},
+      y:{ grid:{ color:'rgba(56,189,248,0.07)' }, ticks:{ font }}
+    }
+  }
+});
+
+// Weather line
+const labels7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+new Chart(document.getElementById('weatherChart'), {
+  type:'line',
+  data:{
+    labels:labels7,
+    datasets:[
+      { label:'CLEAR', data:[38,42,30,45,50,38,42], borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.07)', tension:0.4, fill:true },
+      { label:'RAINY', data:[20,18,32,22,18,28,20], borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.07)', tension:0.4, fill:true },
+      { label:'STORM', data:[8,12,20,8,6,14,8],   borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.07)',  tension:0.4, fill:true },
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ font, usePointStyle:true }}},
+    scales:{
+      x:{ grid:{ color:'rgba(56,189,248,0.07)' }, ticks:{ font }},
+      y:{ grid:{ color:'rgba(56,189,248,0.07)' }, ticks:{ font }}
+    }
+  }
+});
+
+// Route radar
+new Chart(document.getElementById('routeChart'), {
+  type:'radar',
+  data:{
+    labels:['Mumbai→Pune','Mumbai→Ahm','Delhi→Jaipur','Delhi→Ahm','BLR→Chennai','MUM→BLR','Del→Kolkata','KOL→Chennai','Pune→BLR'],
+    datasets:[{
+      label:'Route Weight',
+      data:[5,15,8,25,10,30,40,45,20],
+      backgroundColor:'rgba(129,140,248,0.15)',
+      borderColor:'#818cf8',
+      pointBackgroundColor:'#818cf8',
+      pointBorderColor:'#fff',
+      borderWidth:2
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ font }}},
+    scales:{ r:{ grid:{ color:'rgba(56,189,248,0.1)' }, ticks:{ font, backdropColor:'transparent' }}}
+  }
+});
+</script>
+</body>
+</html>
