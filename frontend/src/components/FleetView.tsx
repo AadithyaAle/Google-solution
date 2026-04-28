@@ -6,7 +6,7 @@ import { Search, Plus, X, Check, Activity, Trash2, Shield, HeartPulse, AlertTria
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'https://your-render-url.onrender.com';
 
 export default function FleetView() {
     const { vehicles, addVehicle, deleteVehicle, setVehicles, shipments } = useStore();

@@ -10,7 +10,7 @@ import OrchestrationView from '@/components/OrchestrationView';
 import { useStore } from '@/store/useStore';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'https://your-render-url.onrender.com';
 
 export default function Home() {
   const { isAuthenticated, updateShipment, addAlert, setNetworkState, setNetworkStats, setVehicles } = useStore();
@@ -48,7 +48,7 @@ export default function Home() {
 
     // WebSocket for live telemetry
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//localhost:8000/ws/alerts`);
+    const ws = new WebSocket(`${protocol}//your-render-url.onrender.com/ws/alerts`);
 
     ws.onmessage = (event) => {
       try {

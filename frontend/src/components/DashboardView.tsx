@@ -9,7 +9,7 @@ import { Globe, Box, Activity, RotateCcw, Check, HeartPulse, Brain, Zap, Trendin
 import { motion } from 'framer-motion';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'https://your-render-url.onrender.com';
 
 export default function DashboardView() {
     const { shipments, vehicles, networkState, networkStats } = useStore();

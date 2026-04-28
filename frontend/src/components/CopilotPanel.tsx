@@ -6,7 +6,7 @@ import { Brain, Send, Cpu, Activity, ShieldCheck, AlertCircle, Zap, Terminal } f
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'https://your-render-url.onrender.com';
 
 export default function CopilotPanel() {
     const { copilotMessages, addCopilotMessage, vehicles, shipments, networkStats } = useStore();
