@@ -4,4 +4,4 @@
   publish = "frontend/out"
 
 [build.environment]
-  VITE_API_BASE_URL = https://google-solution-4w3b.onrender.com/
+  VITE_API_BASE_URL = "https://google-solution-4w3b.onrender.com/"
